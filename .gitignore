@@ -1,0 +1,6 @@
+node_modules/
+*.jpg
+__pycache__/
+*.pyc
+mav.tlog
+mav.parm
