@@ -1,20 +1,68 @@
 import math
+import requests
 from dataclasses import dataclass
+from typing import Optional
+
+
+# ── LIVE NOAA WEATHER FEED ───────────────────────────────────────
+
+def get_live_fire_weather(lat: float, lon: float) -> Optional[dict]:
+    """Pull live weather from NOAA API. Free, no key required."""
+    headers = {"User-Agent": "Beacon-Disaster-Response/1.0"}
+    try:
+        r = requests.get(f"https://api.weather.gov/points/{lat},{lon}",
+                        headers=headers, timeout=10)
+        r.raise_for_status()
+        stations_url = r.json()["properties"]["observationStations"]
+        r2 = requests.get(stations_url, headers=headers, timeout=10)
+        station_id   = r2.json()["features"][0]["properties"]["stationIdentifier"]
+        station_name = r2.json()["features"][0]["properties"]["name"]
+        r3 = requests.get(
+            f"https://api.weather.gov/stations/{station_id}/observations/latest",
+            headers=headers, timeout=10
+        )
+        obs      = r3.json()["properties"]
+        temp_c   = obs.get("temperature",      {}).get("value") or 20
+        humidity = obs.get("relativeHumidity", {}).get("value") or 50
+        wind_ms  = obs.get("windSpeed",        {}).get("value") or 0
+        wind_dir = obs.get("windDirection",    {}).get("value") or 0
+        temp_f   = temp_c * 9/5 + 32
+        wind_mph = wind_ms * 2.237
+        base     = humidity / 100.0 * 0.30
+        adj      = (temp_f - 70) * 0.001
+        m1hr     = max(0.01, min(0.40, base - adj))
+        print(f"[NOAA] {station_id} — {station_name}")
+        print(f"[NOAA] {temp_f:.1f}°F  {humidity:.0f}% RH  {wind_mph:.1f}mph @ {wind_dir:.0f}°  moisture: {m1hr*100:.1f}%")
+        return {
+            "wind_speed":     wind_mph,
+            "wind_direction": wind_dir,
+            "moisture_1hr":   m1hr,
+            "moisture_10hr":  min(m1hr * 1.5, 0.40),
+            "moisture_100hr": min(m1hr * 2.0, 0.40),
+            "moisture_live":  min(m1hr * 4.0, 1.50),
+            "temperature_f":  temp_f,
+            "humidity":       humidity,
+            "station":        station_id,
+        }
+    except Exception as e:
+        print(f"[NOAA] Weather fetch error: {e}")
+        return None
+
+
+# ── ROTHERMEL MODEL ──────────────────────────────────────────────
+
+CONV = 2000 / 43560
 
 @dataclass
 class FuelModel:
     name: str
-    fuel_load_1hr: float      # lb/ft2 - fine dead fuel
-    fuel_load_10hr: float     # lb/ft2 - medium dead fuel
-    fuel_load_100hr: float    # lb/ft2 - coarse dead fuel
-    fuel_load_live: float     # lb/ft2 - live fuel
-    fuel_depth: float         # feet - fuel bed depth
-    extinction_moisture: float # fraction (not percent)
-    sav_1hr: float            # ft2/ft3 - surface area to volume ratio
-
-# Anderson 1982 fuel models converted to lb/ft2
-# Original tons/acre * 2000lb/ton / 43560ft2/acre = lb/ft2
-CONV = 2000 / 43560  # tons/acre to lb/ft2
+    fuel_load_1hr: float
+    fuel_load_10hr: float
+    fuel_load_100hr: float
+    fuel_load_live: float
+    fuel_depth: float
+    extinction_moisture: float
+    sav_1hr: float
 
 FUEL_MODELS = {
     1:  FuelModel("Short Grass",     0.74*CONV, 0.00,      0.00,      0.00,      1.0, 0.12, 3500),
@@ -35,23 +83,23 @@ FUEL_MODELS = {
 @dataclass
 class FireEnvironment:
     fuel_model: int
-    wind_speed: float         # mph at 20ft
-    wind_direction: float     # degrees FROM
-    slope: float              # percent
-    aspect: float             # degrees
-    moisture_1hr: float       # fraction (e.g. 0.06 = 6%)
-    moisture_10hr: float      # fraction
-    moisture_100hr: float     # fraction
-    moisture_live: float      # fraction
+    wind_speed: float
+    wind_direction: float
+    slope: float
+    aspect: float
+    moisture_1hr: float
+    moisture_10hr: float
+    moisture_100hr: float
+    moisture_live: float
 
 @dataclass
 class FireBehavior:
-    spread_rate_fpm: float    # ft/min
-    spread_rate_mph: float    # mph
-    spread_rate_mpm: float    # m/min
-    intensity: float          # BTU/ft/s fireline intensity
-    flame_length: float       # feet
-    direction: float          # degrees
+    spread_rate_fpm: float
+    spread_rate_mph: float
+    spread_rate_mpm: float
+    intensity: float
+    flame_length: float
+    direction: float
 
     def summary(self):
         chains_hr = self.spread_rate_fpm * 60 / 66
@@ -62,11 +110,12 @@ class FireBehavior:
             f"Direction:      {self.direction:.0f}°"
         )
 
+
 class RothermelModel:
     """
-    Rothermel 1972 Surface Fire Spread Model
-    Reference: Rothermel, R.C. 1972. A mathematical model for predicting
-    fire spread in wildland fuels. USDA Forest Service Research Paper INT-115.
+    Rothermel 1972 Surface Fire Spread Model.
+    Pulls live NOAA weather automatically via calculate_live().
+    Reference: USDA Forest Service INT-115.
     """
 
     def calculate(self, env: FireEnvironment) -> FireBehavior:
@@ -74,83 +123,38 @@ class RothermelModel:
         if not fuel:
             raise ValueError(f"Unknown fuel model: {env.fuel_model}")
 
-        w_d = fuel.fuel_load_1hr + fuel.fuel_load_10hr + fuel.fuel_load_100hr
-        w_n = w_d * (1.0 - 0.0555)  # net fuel load (subtract mineral content)
-
-        # Bulk density (lb/ft3)
+        w_d   = fuel.fuel_load_1hr + fuel.fuel_load_10hr + fuel.fuel_load_100hr
+        w_n   = w_d * (1.0 - 0.0555)
         rho_b = w_d / fuel.fuel_depth if fuel.fuel_depth > 0 else 0.001
-
-        # Particle density (lb/ft3) - standard for wood
-        rho_p = 32.0
-
-        # Packing ratio
-        beta = rho_b / rho_p
-        beta = max(beta, 1e-6)
-
-        # Optimum packing ratio (Rothermel eq 37)
+        beta  = max(rho_b / 32.0, 1e-6)
         sigma = fuel.sav_1hr
-        beta_op = 3.348 * sigma**(-0.8189)
 
-        # Maximum reaction velocity (1/min) (eq 36)
-        sigma15 = sigma**1.5
-        gamma_max = sigma15 / (495.0 + 0.0594 * sigma15)
+        beta_op  = 3.348 * sigma**(-0.8189)
+        gamma_max = sigma**1.5 / (495.0 + 0.0594 * sigma**1.5)
+        A        = 133.0 * sigma**(-0.7913)
+        beta_r   = beta / beta_op
+        gamma_op = gamma_max * (beta_r**A) * math.exp(A * (1.0 - beta_r))
 
-        # Optimum reaction velocity (1/min) (eq 38)
-        A = 133.0 * sigma**(-0.7913)
-        beta_ratio = beta / beta_op
-        gamma_op = gamma_max * (beta_ratio**A) * math.exp(A * (1.0 - beta_ratio))
+        r_M   = min(env.moisture_1hr / fuel.extinction_moisture, 1.0)
+        eta_M = max(1.0 - 2.59*r_M + 5.11*r_M**2 - 3.52*r_M**3, 0.0)
+        eta_s = 0.174 * (0.01)**(-0.19)
+        I_R   = gamma_op * w_n * 8000.0 * eta_M * eta_s
 
-        # Moisture damping (eq 29)
-        M_f = env.moisture_1hr  # using 1hr as representative dead fuel moisture
-        M_x = fuel.extinction_moisture
-        r_M = min(M_f / M_x, 1.0)
-        eta_M = 1.0 - 2.59*r_M + 5.11*r_M**2 - 3.52*r_M**3
-        eta_M = max(eta_M, 0.0)
-
-        # Mineral damping (eq 30) - fixed value for standard fuels
-        eta_s = 0.174 * (0.01)**(-0.19)  # ~0.417
-
-        # Reaction intensity (BTU/ft2/min) (eq 27)
-        h = 8000.0  # BTU/lb heat content
-        I_R = gamma_op * w_n * h * eta_M * eta_s
-
-        # Propagating flux ratio (eq 42)
         xi = math.exp((0.792 + 0.681 * sigma**0.5) * (beta + 0.1)) / (192.0 + 0.2595 * sigma)
 
-        # Wind factor (eq 47)
-        # Convert 20ft wind to midflame (multiply by 0.4 for open, then to ft/min)
-        U = env.wind_speed * 0.4 * 88.0  # ft/min at midflame
-        U = min(U, 300.0)  # hard cap at ~4mph midflame — Rothermel empirical limit
-        B = 0.02526 * sigma**0.54
-        C = 7.47 * math.exp(-0.133 * sigma**0.55)
-        E = 0.715 * math.exp(-3.59e-4 * sigma)
+        U     = min(env.wind_speed * 0.4 * 88.0, 300.0)
+        B     = 0.02526 * sigma**0.54
+        C     = 7.47   * math.exp(-0.133 * sigma**0.55)
+        E     = 0.715  * math.exp(-3.59e-4 * sigma)
+        if U > 0.9 * I_R:
+            U = 0.9 * I_R
         phi_w = C * (U**B) * (beta**(-E))
-        # Wind speed limit — Rothermel caps wind effect
-        # Max effective wind = 0.9 * I_R (empirical limit)
-        U_max = 0.9 * I_R
-        if U > U_max:
-            U = U_max
-            phi_w = C * (U**B) * (beta**(-E))
-
-        # Slope factor (eq 51)
         phi_s = 5.275 * (beta**(-0.3)) * (env.slope / 100.0)**2
 
-        # Heat sink (BTU/ft3) (eq 52)
-        Q_ig = 250.0 + 1116.0 * env.moisture_1hr
-        heat_sink = rho_b * Q_ig
-
-        # Rate of spread (ft/min) (eq 1)
-        R = (I_R * xi * (1.0 + phi_w + phi_s)) / max(heat_sink, 0.001)
-
-        # Fireline intensity (BTU/ft/s) - Byram 1959
-        # I = H * w * R (BTU/ft/s)
-        I_B = (I_R * fuel.fuel_depth * R) / 60.0 / 10.0
-
-        # Flame length (ft) - Byram 1959
-        L = 0.45 * I_B**0.46 if I_B > 0 else 0.0
-
-        # Direction of spread (downwind)
-        direction = (env.wind_direction + 180.0) % 360.0
+        heat_sink = rho_b * (250.0 + 1116.0 * env.moisture_1hr)
+        R         = (I_R * xi * (1.0 + phi_w + phi_s)) / max(heat_sink, 0.001)
+        I_B       = (I_R * fuel.fuel_depth * R) / 60.0 / 10.0
+        L         = 0.45 * I_B**0.46 if I_B > 0 else 0.0
 
         return FireBehavior(
             spread_rate_fpm=R,
@@ -158,63 +162,48 @@ class RothermelModel:
             spread_rate_mpm=R * 0.3048,
             intensity=I_B,
             flame_length=L,
-            direction=direction
+            direction=(env.wind_direction + 180.0) % 360.0
         )
 
+    def calculate_live(self, lat: float, lon: float,
+                       fuel_model: int = 4, slope: float = 10,
+                       aspect: float = 180) -> Optional[FireBehavior]:
+        """Pull live NOAA weather and run Rothermel. No manual input needed."""
+        print(f"[ROTHERMEL] Fetching live weather for ({lat}, {lon})...")
+        w = get_live_fire_weather(lat, lon)
+        if not w:
+            return None
+        env = FireEnvironment(
+            fuel_model=fuel_model,
+            wind_speed=w["wind_speed"], wind_direction=w["wind_direction"],
+            slope=slope, aspect=aspect,
+            moisture_1hr=w["moisture_1hr"], moisture_10hr=w["moisture_10hr"],
+            moisture_100hr=w["moisture_100hr"], moisture_live=w["moisture_live"]
+        )
+        return self.calculate(env)
+
     def threat_level(self, b: FireBehavior) -> str:
-        if b.spread_rate_mph > 3.0 or b.flame_length > 15.0:
-            return "critical"
-        elif b.spread_rate_mph > 1.0 or b.flame_length > 8.0:
-            return "high"
-        elif b.spread_rate_mph > 0.2 or b.flame_length > 2.0:
-            return "medium"
+        if b.spread_rate_mph > 3.0 or b.flame_length > 15.0:  return "critical"
+        elif b.spread_rate_mph > 1.0 or b.flame_length > 8.0: return "high"
+        elif b.spread_rate_mph > 0.2 or b.flame_length > 2.0: return "medium"
         return "low"
 
 
-def run_scenario(name, env):
-    model = RothermelModel()
-    b = model.calculate(env)
-    threat = model.threat_level(b)
-    fuel = FUEL_MODELS[env.fuel_model]
-    print(f"\n{'='*52}")
-    print(f"SCENARIO: {name}")
-    print(f"{'='*52}")
-    print(f"Fuel Model:   {env.fuel_model} — {fuel.name}")
-    print(f"Wind:         {env.wind_speed}mph @ {env.wind_direction}°")
-    print(f"Slope:        {env.slope}%")
-    print(f"Moisture 1hr: {env.moisture_1hr*100:.0f}%")
-    print(f"\n[ROTHERMEL OUTPUT]")
-    print(b.summary())
-    print(f"Threat Level: {threat.upper()}")
-
-
 if __name__ == "__main__":
-    print("🔥 ROTHERMEL SURFACE FIRE SPREAD MODEL")
-    print("Rothermel 1972 — USDA Forest Service INT-115\n")
+    model = RothermelModel()
+    print("🔥 ROTHERMEL 1972 — Live NOAA Weather Integration\n")
 
-    # California Sierra Nevada — Dixie Fire conditions
-    run_scenario("California Sierra Nevada — Extreme", FireEnvironment(
-        fuel_model=9,
-        wind_speed=25, wind_direction=225,
-        slope=30, aspect=180,
-        moisture_1hr=0.02, moisture_10hr=0.03,
-        moisture_100hr=0.05, moisture_live=0.60
-    ))
+    locations = [
+        ("Plumas County CA", 40.1, -121.4, 4, 20),
+        ("Allen TX",         33.1,  -96.6, 1,  5),
+        ("Los Angeles CA",  34.05,-118.25, 4, 15),
+    ]
 
-    # Texas grassland — high wind
-    run_scenario("Texas Grassland — High Wind", FireEnvironment(
-        fuel_model=1,
-        wind_speed=35, wind_direction=270,
-        slope=5, aspect=90,
-        moisture_1hr=0.06, moisture_10hr=0.08,
-        moisture_100hr=0.10, moisture_live=0.80
-    ))
-
-    # Australian chaparral — extreme
-    run_scenario("Australian Bush — Critical", FireEnvironment(
-        fuel_model=4,
-        wind_speed=40, wind_direction=315,
-        slope=20, aspect=270,
-        moisture_1hr=0.03, moisture_10hr=0.04,
-        moisture_100hr=0.06, moisture_live=0.50
-    ))
+    for name, lat, lon, fuel, slope in locations:
+        print(f"\n{'='*55}")
+        print(f"LOCATION: {name}  |  Fuel: {FUEL_MODELS[fuel].name}  |  Slope: {slope}%")
+        print(f"{'='*55}")
+        result = model.calculate_live(lat, lon, fuel_model=fuel, slope=slope)
+        if result:
+            print(result.summary())
+            print(f"Threat Level: {model.threat_level(result).upper()}")

@@ -1,7 +1,62 @@
 import math
+import requests
 from dataclasses import dataclass
-from typing import List, Dict
+from typing import List, Optional
 from enum import Enum
+
+
+# ── LIVE NHC HURRICANE FEED ──────────────────────────────────────
+
+def get_active_hurricanes() -> list:
+    """Pull active storms from NOAA NHC JSON feed."""
+    try:
+        r = requests.get("https://www.nhc.noaa.gov/CurrentStorms.json", timeout=10)
+        r.raise_for_status()
+        storms = r.json().get("activeStorms", [])
+        result = []
+        for s in storms:
+            wind = float(s.get("maxWindMph", 0) or 0)
+            result.append({
+                "name":          s.get("name", "Unknown"),
+                "category":      _wind_to_category(wind),
+                "wind_mph":      wind,
+                "pressure_mb":   float(s.get("minPressureMb", 1013) or 1013),
+                "lat":           float(s.get("latitudeNumeric", 0) or 0),
+                "lon":           float(s.get("longitudeNumeric", 0) or 0),
+                "forward_mph":   float(s.get("movementSpeedMph", 10) or 10),
+                "heading_deg":   float(s.get("movementDir", 0) or 0),
+                "basin":         s.get("basin", ""),
+                "live":          True
+            })
+        print(f"[NHC] {len(result)} active storm(s) found")
+        return result
+    except Exception as e:
+        print(f"[NHC] Storm feed error: {e}")
+        return []
+
+
+def get_nhc_forecast_track(storm_id: str) -> list:
+    """Pull NHC forecast track for a specific storm."""
+    try:
+        url = f"https://www.nhc.noaa.gov/gis/forecast/archive/{storm_id}_5day_pgn.json"
+        r   = requests.get(url, timeout=10)
+        if r.status_code == 200:
+            return r.json().get("features", [])
+    except:
+        pass
+    return []
+
+
+def _wind_to_category(wind_mph: float) -> int:
+    if wind_mph >= 157: return 5
+    elif wind_mph >= 130: return 4
+    elif wind_mph >= 111: return 3
+    elif wind_mph >= 96:  return 2
+    elif wind_mph >= 74:  return 1
+    return 0
+
+
+# ── SLOSH MODEL ──────────────────────────────────────────────────
 
 class HurricaneCategory(Enum):
     TROPICAL_STORM = 0
@@ -10,6 +65,7 @@ class HurricaneCategory(Enum):
     CAT3 = 3
     CAT4 = 4
     CAT5 = 5
+
 
 @dataclass
 class Hurricane:
@@ -22,6 +78,23 @@ class Hurricane:
     heading_deg: float
     landfall_lat: float
     landfall_lon: float
+    live: bool = False
+
+    @classmethod
+    def from_live(cls, storm: dict) -> "Hurricane":
+        return cls(
+            name=storm["name"],
+            category=HurricaneCategory(storm["category"]),
+            wind_speed_mph=storm["wind_mph"],
+            central_pressure_mb=storm["pressure_mb"],
+            radius_max_wind_km=50,
+            forward_speed_mph=storm["forward_mph"],
+            heading_deg=storm["heading_deg"],
+            landfall_lat=storm["lat"],
+            landfall_lon=storm["lon"],
+            live=True
+        )
+
 
 @dataclass
 class CoastalPoint:
@@ -29,9 +102,12 @@ class CoastalPoint:
     lat: float
     lon: float
     distance_from_landfall_km: float
-    coastal_bathymetry_m: float  # offshore depth
+    coastal_bathymetry_m: float
     inland_elevation_m: float
     population: int
+    has_seawall: bool = False
+    seawall_height_m: float = 0.0
+
 
 @dataclass
 class SLOSHResult:
@@ -46,7 +122,9 @@ class SLOSHResult:
     evacuation_zone: str
 
     def summary(self):
+        source = "LIVE NHC" if self.hurricane.live else "Manual"
         return (
+            f"Storm:             {self.hurricane.name} Cat{self.hurricane.category.value} [{source}]\n"
             f"Surge Height:      {self.surge_height_m:.1f}m\n"
             f"Inundation Depth:  {self.inundation_depth_m:.1f}m\n"
             f"Inundation Dist:   {self.inundation_distance_m:.0f}m inland\n"
@@ -56,289 +134,179 @@ class SLOSHResult:
             f"Threat Level:      {self.threat_level.upper()}"
         )
 
-# Saffir-Simpson surge ranges (meters)
+
 CATEGORY_SURGE = {
     HurricaneCategory.TROPICAL_STORM: (0.3, 0.9),
-    HurricaneCategory.CAT1: (1.2, 1.5),
-    HurricaneCategory.CAT2: (1.8, 2.4),
-    HurricaneCategory.CAT3: (2.7, 3.7),
-    HurricaneCategory.CAT4: (4.0, 5.5),
-    HurricaneCategory.CAT5: (5.5, 8.5),
+    HurricaneCategory.CAT1:           (1.2, 1.5),
+    HurricaneCategory.CAT2:           (1.8, 2.4),
+    HurricaneCategory.CAT3:           (2.7, 3.7),
+    HurricaneCategory.CAT4:           (4.0, 5.5),
+    HurricaneCategory.CAT5:           (5.5, 8.5),
 }
+
 
 class SLOSHModel:
     """
     NOAA SLOSH — Sea, Lake, and Overland Surges from Hurricanes.
-    
-    Reference: Jelesnianski, C.P., Chen, J., and Shaffer, W.A. 1992.
-    SLOSH: Sea, Lake, and Overland Surges from Hurricanes.
-    NOAA Technical Report NWS 48.
-    
-    Simplified parametric surge model based on SLOSH methodology.
-    Used by NOAA and NHC for hurricane evacuation planning.
+    Automatically pulls active storm data from NHC.
+
+    Reference: Jelesnianski et al. 1992. NOAA Technical Report NWS 48.
     """
 
-    def _pressure_deficit(self, hurricane: Hurricane) -> float:
-        """Pressure deficit from ambient (1013mb)."""
-        return max(0, 1013 - hurricane.central_pressure_mb)
-
     def _surge_at_landfall(self, hurricane: Hurricane) -> float:
-        """
-        Maximum surge at landfall using SLOSH parametric formula.
-        Based on Irish et al. 2008 simplified surge scaling.
-        """
-        delta_p = self._pressure_deficit(hurricane)
+        delta_p      = max(0, 1013 - hurricane.central_pressure_mb)
+        surge_p      = 0.0155 * delta_p
+        surge_w      = (hurricane.wind_speed_mph / 100)**2 * 3.0
+        surge_fwd    = hurricane.forward_speed_mph * 0.02
+        rmw_factor   = math.exp(-hurricane.radius_max_wind_km / 50)
+        total        = (surge_p + surge_w + surge_fwd) * (1 + rmw_factor)
+        surge_range  = CATEGORY_SURGE.get(hurricane.category, (0, 10))
+        return max(surge_range[0], min(total, surge_range[1] * 1.2))
 
-        # Base surge from pressure deficit
-        surge_pressure = 0.0155 * delta_p
-
-        # Wind contribution
-        surge_wind = (hurricane.wind_speed_mph / 100) ** 2 * 3.0
-
-        # Forward speed contribution
-        surge_forward = hurricane.forward_speed_mph * 0.02
-
-        # Radius of max wind effect
-        rmw_factor = math.exp(-hurricane.radius_max_wind_km / 50)
-
-        total_surge = (surge_pressure + surge_wind + surge_forward) * (1 + rmw_factor)
-
-        # Cap by category
-        cat = hurricane.category
-        surge_range = CATEGORY_SURGE.get(cat, (0, 10))
-        return max(surge_range[0], min(total_surge, surge_range[1] * 1.2))
-
-    def _surge_at_distance(
-        self,
-        landfall_surge: float,
-        distance_km: float,
-        hurricane: Hurricane
-    ) -> float:
-        """
-        Surge height at distance from landfall center.
-        Surge decays exponentially with distance along coast.
-        """
-        # Right side of track has higher surge (Northern Hemisphere)
+    def _surge_at_distance(self, landfall_surge: float, dist_km: float,
+                           hurricane: Hurricane) -> float:
         rmw = hurricane.radius_max_wind_km
-        
-        if distance_km <= rmw:
-            # Inside radius of max wind — near peak surge
-            factor = 1.0 - 0.3 * (distance_km / rmw)
+        if dist_km <= rmw:
+            factor = 1.0 - 0.3 * (dist_km / rmw)
         else:
-            # Outside — exponential decay
-            factor = 0.7 * math.exp(-(distance_km - rmw) / (rmw * 2))
-
+            factor = 0.7 * math.exp(-(dist_km - rmw) / (rmw * 2))
         return landfall_surge * factor
 
-    def _inundation(
-        self,
-        surge_m: float,
-        point: CoastalPoint
-    ) -> tuple:
-        """
-        Calculate inundation depth and distance inland.
-        Uses simple bathtub model with coastal slope.
-        """
-        # Effective surge above land elevation
-        inundation_depth = max(0, surge_m - point.inland_elevation_m)
-
-        if inundation_depth <= 0:
+    def _inundation(self, surge_m: float, point: CoastalPoint) -> tuple:
+        depth = max(0, surge_m - point.inland_elevation_m)
+        if depth <= 0:
             return 0, 0
+        slope    = 1/1000 if point.inland_elevation_m < 2 else 1/500 if point.inland_elevation_m < 5 else 1/200
+        distance = depth / slope
+        return depth, distance
 
-        # Coastal slope approximation
-        # Flat coastal plains ~1:1000, steeper coasts ~1:100
-        if point.inland_elevation_m < 2:
-            slope = 1/1000  # very flat
-        elif point.inland_elevation_m < 5:
-            slope = 1/500
-        else:
-            slope = 1/200
+    def _arrival_time(self, dist_km: float, hurricane: Hurricane) -> float:
+        speed_kmh     = hurricane.forward_speed_mph * 1.609
+        pre_hours     = hurricane.radius_max_wind_km / max(speed_kmh, 1)
+        travel_hours  = dist_km / max(speed_kmh, 1)
+        return max(0, (pre_hours - travel_hours) * 60)
 
-        inundation_distance = inundation_depth / slope
-
-        return inundation_depth, inundation_distance
-
-    def _arrival_time(
-        self,
-        distance_km: float,
-        hurricane: Hurricane
-    ) -> float:
-        """
-        Estimate surge arrival time before landfall (minutes).
-        Surge arrives before eye makes landfall.
-        """
-        # Surge wave speed ~ forward speed of hurricane
-        wave_speed_kmh = hurricane.forward_speed_mph * 1.609
-        
-        # Pre-landfall surge arrives 2-6 hours early depending on size
-        pre_landfall_hours = hurricane.radius_max_wind_km / wave_speed_kmh
-        
-        # Time for surge to travel to this coastal point
-        travel_time_h = distance_km / max(wave_speed_kmh, 1)
-        
-        arrival_min = (pre_landfall_hours - travel_time_h) * 60
-        return max(0, arrival_min)
-
-    def _evacuation_zone(self, surge_m: float, inundation_m: float) -> str:
-        """FEMA evacuation zone assignment."""
-        if surge_m > 4.0 or inundation_m > 2.0:
-            return "Zone A — Mandatory evacuation"
-        elif surge_m > 2.5 or inundation_m > 1.0:
-            return "Zone B — Evacuation recommended"
-        elif surge_m > 1.5:
-            return "Zone C — Voluntary evacuation"
+    def _evac_zone(self, surge_m: float, inundation_m: float) -> str:
+        if surge_m > 4.0 or inundation_m > 2.0:   return "Zone A — Mandatory evacuation"
+        elif surge_m > 2.5 or inundation_m > 1.0: return "Zone B — Evacuation recommended"
+        elif surge_m > 1.5:                        return "Zone C — Voluntary evacuation"
         return "Zone D — Monitor conditions"
 
-    def _threat_level(self, surge_m: float, inundation_m: float) -> str:
-        if surge_m > 4.0 or inundation_m > 2.0:
-            return "critical"
-        elif surge_m > 2.0 or inundation_m > 1.0:
-            return "high"
-        elif surge_m > 1.0:
-            return "medium"
+    def _threat(self, surge_m: float, inundation_m: float) -> str:
+        if surge_m > 4.0 or inundation_m > 2.0:   return "critical"
+        elif surge_m > 2.0 or inundation_m > 1.0: return "high"
+        elif surge_m > 1.0:                        return "medium"
         return "low"
 
-    def calculate(
-        self,
-        hurricane: Hurricane,
-        point: CoastalPoint
-    ) -> SLOSHResult:
-        """
-        Calculate storm surge at a coastal point.
-        
-        Args:
-            hurricane: Hurricane parameters
-            point: Coastal location to assess
-        """
-        # Max surge at landfall
+    def calculate(self, hurricane: Hurricane, point: CoastalPoint) -> SLOSHResult:
         landfall_surge = self._surge_at_landfall(hurricane)
-
-        # Surge at this point
-        surge = self._surge_at_distance(
-            landfall_surge,
-            point.distance_from_landfall_km,
-            hurricane
-        )
-
-        # Inundation
-        depth, distance = self._inundation(surge, point)
-
-        # Arrival time
-        arrival = self._arrival_time(
-            point.distance_from_landfall_km,
-            hurricane
-        )
-
-        # People at risk
-        if distance > 0:
-            risk_fraction = min(distance / 1000, 1.0)
-            people = int(point.population * risk_fraction)
-        else:
-            people = 0
-
-        threat = self._threat_level(surge, depth)
-        evac_zone = self._evacuation_zone(surge, depth)
-
+        surge          = self._surge_at_distance(landfall_surge, point.distance_from_landfall_km, hurricane)
+        depth, dist    = self._inundation(surge, point)
+        arrival        = self._arrival_time(point.distance_from_landfall_km, hurricane)
+        people         = int(point.population * min(dist / 1000, 1.0)) if dist > 0 else 0
+        threat         = self._threat(surge, depth)
+        evac           = self._evac_zone(surge, depth)
         return SLOSHResult(
-            point=point,
-            hurricane=hurricane,
-            surge_height_m=surge,
-            inundation_depth_m=depth,
-            inundation_distance_m=distance,
-            arrival_time_min=arrival,
-            threat_level=threat,
-            people_at_risk=people,
-            evacuation_zone=evac_zone
+            point=point, hurricane=hurricane,
+            surge_height_m=surge, inundation_depth_m=depth,
+            inundation_distance_m=dist, arrival_time_min=arrival,
+            threat_level=threat, people_at_risk=people,
+            evacuation_zone=evac
         )
 
-    def regional_assessment(
-        self,
-        hurricane: Hurricane,
-        points: List[CoastalPoint]
-    ) -> List[SLOSHResult]:
-        """Assess surge at multiple coastal points."""
-        results = []
-        for point in points:
-            result = self.calculate(hurricane, point)
-            results.append(result)
-        return sorted(results, key=lambda r: r.surge_height_m, reverse=True)
+    def regional_assessment(self, hurricane: Hurricane,
+                            points: List[CoastalPoint]) -> List[SLOSHResult]:
+        return sorted([self.calculate(hurricane, p) for p in points],
+                     key=lambda r: r.surge_height_m, reverse=True)
 
-    def beacon_priority_zones(
-        self,
-        results: List[SLOSHResult]
-    ) -> dict:
+    def calculate_live(self, points: List[CoastalPoint]) -> List[SLOSHResult]:
+        """
+        Auto-fetch active NHC storms and calculate surge at coastal points.
+        """
+        print("[SLOSH] Fetching active hurricanes from NHC...")
+        storms = get_active_hurricanes()
+
+        if not storms:
+            print("[SLOSH] No active tropical storms or hurricanes.")
+            return []
+
+        # Use strongest active storm
+        strongest = max(storms, key=lambda s: s["wind_mph"])
+        print(f"[SLOSH] Running on {strongest['name']} Cat{strongest['category']} "
+              f"({strongest['wind_mph']}mph)")
+
+        hurricane = Hurricane.from_live(strongest)
+
+        # Calculate distance from storm center to each point
+        for point in points:
+            dist = self._haversine(
+                hurricane.landfall_lat, hurricane.landfall_lon,
+                point.lat, point.lon
+            )
+            point.distance_from_landfall_km = dist
+
+        return self.regional_assessment(hurricane, points)
+
+    def _haversine(self, lat1, lon1, lat2, lon2) -> float:
+        R = 6371.0
+        d = lambda x: math.radians(x)
+        a = (math.sin(d(lat2-lat1)/2)**2 +
+             math.cos(d(lat1)) * math.cos(d(lat2)) *
+             math.sin(d(lon2-lon1)/2)**2)
+        return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+
+    def beacon_priority_zones(self, results: List[SLOSHResult]) -> dict:
         zones = {}
         color_map = {"critical": "red", "high": "orange",
                     "medium": "yellow", "low": "yellow"}
-
-        for result in results:
-            color = color_map[result.threat_level]
+        for r in results:
+            color = color_map[r.threat_level]
             if color not in zones:
                 zones[color] = {
-                    "priority": {"red": 1, "orange": 2, "yellow": 3}[color],
-                    "sites": [],
+                    "priority":    {"red": 1, "orange": 2, "yellow": 3}[color],
+                    "sites":       [],
                     "max_surge_m": 0,
-                    "deploy": "drone",
-                    "label": f"Storm surge — {result.threat_level} threat"
+                    "deploy":      "drone",
+                    "label":       f"Storm surge — {r.threat_level}"
                 }
-            zones[color]["sites"].append(result.point.name)
-            zones[color]["max_surge_m"] = max(
-                zones[color]["max_surge_m"],
-                result.surge_height_m
-            )
-
+            zones[color]["sites"].append(r.point.name)
+            zones[color]["max_surge_m"] = max(zones[color]["max_surge_m"], r.surge_height_m)
         return zones
 
 
 if __name__ == "__main__":
     model = SLOSHModel()
+    print("🌀 NOAA SLOSH — Live NHC Storm Integration\n")
 
-    print("🌀 NOAA SLOSH STORM SURGE MODEL")
-    print("Sea, Lake, and Overland Surges from Hurricanes\n")
-
-    # Hurricane Harvey 2017 — Texas Gulf Coast
-    harvey = Hurricane(
-        name="Harvey", category=HurricaneCategory.CAT4,
-        wind_speed_mph=130, central_pressure_mb=938,
-        radius_max_wind_km=45, forward_speed_mph=10,
-        heading_deg=330, landfall_lat=28.0, landfall_lon=-97.0
-    )
-
-    harvey_points = [
-        CoastalPoint("Rockport TX", 28.02, -97.05, 5, 10, 3, 10000),
-        CoastalPoint("Port Aransas TX", 27.83, -97.07, 25, 15, 2, 4000),
-        CoastalPoint("Corpus Christi TX", 27.80, -97.40, 45, 20, 5, 320000),
-        CoastalPoint("Houston Ship Channel", 29.75, -95.15, 120, 5, 8, 500000),
-        CoastalPoint("Galveston TX", 29.30, -94.80, 150, 8, 2, 50000),
+    # Gulf Coast sites for live assessment
+    gulf_sites = [
+        CoastalPoint("Galveston TX",        29.30, -94.80, 0, 8,  2,  50000),
+        CoastalPoint("Houston Ship Channel", 29.75, -95.15, 0, 5,  8,  500000),
+        CoastalPoint("New Orleans LA",       29.95, -90.07, 0, 5, -2,  500000),
+        CoastalPoint("Mobile AL",            30.69, -88.04, 0, 6,  4,  200000),
+        CoastalPoint("Tampa FL",             27.95, -82.46, 0, 7,  3,  400000),
+        CoastalPoint("Miami FL",             25.77, -80.19, 0, 8,  2,  450000),
     ]
 
-    # Hurricane Katrina 2005 — Louisiana
-    katrina = Hurricane(
-        name="Katrina", category=HurricaneCategory.CAT5,
-        wind_speed_mph=175, central_pressure_mb=902,
-        radius_max_wind_km=85, forward_speed_mph=15,
-        heading_deg=0, landfall_lat=29.0, landfall_lon=-89.6
-    )
-
-    katrina_points = [
-        CoastalPoint("New Orleans LA", 29.95, -90.07, 50, 5, -2, 500000),
-        CoastalPoint("Biloxi MS", 30.40, -88.89, 80, 8, 3, 50000),
-        CoastalPoint("Gulfport MS", 30.37, -89.09, 65, 7, 4, 75000),
-        CoastalPoint("Bay St Louis MS", 30.31, -89.33, 30, 6, 2, 10000),
-        CoastalPoint("Slidell LA", 30.28, -89.78, 40, 4, 3, 30000),
-    ]
-
-    for hurricane, points, name in [
-        (harvey, harvey_points, "Hurricane Harvey 2017 — Texas"),
-        (katrina, katrina_points, "Hurricane Katrina 2005 — Louisiana")
-    ]:
-        print(f"\n{'='*58}")
-        print(f"SCENARIO: {name}")
-        print(f"Category: {hurricane.category.name}, "
-              f"{hurricane.wind_speed_mph}mph, {hurricane.central_pressure_mb}mb")
-        print(f"{'='*58}")
-
-        results = model.regional_assessment(hurricane, points)
-        for r in results:
+    print("=" * 55)
+    print("LIVE MODE — Active NHC Storms")
+    print("=" * 55)
+    live_results = model.calculate_live(gulf_sites)
+    if live_results:
+        for r in live_results:
+            print(f"\n📍 {r.point.name}")
+            print(r.summary())
+    else:
+        print("No active tropical storms. Running Hurricane Harvey scenario.\n")
+        harvey = Hurricane(
+            "Harvey", HurricaneCategory.CAT4, 130, 938, 45, 10, 330, 28.0, -97.0
+        )
+        harvey_points = [
+            CoastalPoint("Rockport TX",     28.02, -97.05,  5, 10, 3, 10000),
+            CoastalPoint("Port Aransas TX", 27.83, -97.07, 25, 15, 2,  4000),
+            CoastalPoint("Corpus Christi",  27.80, -97.40, 45, 20, 5, 320000),
+            CoastalPoint("Galveston TX",    29.30, -94.80,150,  8, 2,  50000),
+        ]
+        for r in model.regional_assessment(harvey, harvey_points):
             print(f"\n📍 {r.point.name}")
             print(r.summary())

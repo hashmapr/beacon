@@ -1,75 +1,194 @@
 import math
+import requests
 from dataclasses import dataclass
-from typing import List, Dict, Tuple
+from typing import List, Optional
+from datetime import datetime, timedelta
+
+
+# ── LIVE FEEDS ───────────────────────────────────────────────────
+
+def get_tsunami_generating_earthquakes(hours_back: int = 24) -> list:
+    """Pull recent large earthquakes that could generate tsunamis."""
+    end_time   = datetime.utcnow()
+    start_time = end_time - timedelta(hours=hours_back)
+    params = {
+        "format":       "geojson",
+        "starttime":    start_time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "endtime":      end_time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "minmagnitude": 6.5,   # tsunamis typically need M6.5+
+        "orderby":      "magnitude",
+        "limit":        20,
+    }
+    try:
+        r = requests.get(
+            "https://earthquake.usgs.gov/fdsnws/event/1/query",
+            params=params, timeout=15
+        )
+        r.raise_for_status()
+        events = []
+        for f in r.json()["features"]:
+            p = f["properties"]
+            c = f["geometry"]["coordinates"]
+            depth = c[2]
+            # Tsunamigenic if shallow submarine earthquake
+            is_tsunamigenic = depth < 100 and p["mag"] >= 7.0
+            events.append({
+                "id":        f["id"],
+                "magnitude": p["mag"],
+                "lat":       c[1],
+                "lon":       c[0],
+                "depth_km":  depth,
+                "place":     p.get("place") or "Unknown",
+                "time":      datetime.utcfromtimestamp(p["time"] / 1000),
+                "tsunamigenic": is_tsunamigenic,
+                "tsunami_flag": p.get("tsunami", 0),
+            })
+        tsunamigenic = [e for e in events if e["tsunamigenic"] or e["tsunami_flag"]]
+        print(f"[USGS] Found {len(events)} M6.5+ events, {len(tsunamigenic)} potentially tsunamigenic")
+        return events
+    except Exception as e:
+        print(f"[USGS] Tsunami earthquake feed error: {e}")
+        return []
+
+
+def get_active_tsunami_warnings() -> list:
+    """Check NOAA Pacific Tsunami Warning Center for active warnings."""
+    warnings = []
+    urls = [
+        "https://www.tsunami.gov/events/xml/PHEBulletin.xml",
+        "https://www.tsunami.gov/events/xml/ATWCBulletin.xml"
+    ]
+    for url in urls:
+        try:
+            r = requests.get(url, timeout=10)
+            if r.status_code == 200:
+                content = r.text
+                for keyword in ["WARNING", "WATCH", "ADVISORY"]:
+                    if keyword in content:
+                        warnings.append({
+                            "status":  keyword,
+                            "source":  url,
+                            "content": content[:500]
+                        })
+                        break
+        except Exception as e:
+            print(f"[NOAA] Tsunami warning fetch error: {e}")
+    return warnings
+
+
+def get_dart_buoy_readings(buoy_ids: List[str] = None) -> dict:
+    """
+    Pull DART buoy ocean pressure data from NOAA NDBC.
+    DART = Deep-ocean Assessment and Reporting of Tsunamis.
+    Normal ocean column height ~4000-6000m. Anomaly = tsunami wave.
+    """
+    if not buoy_ids:
+        buoy_ids = ["21413", "21418", "21419", "46408", "46411",
+                   "32412", "32413", "43412", "51407", "52402"]
+
+    results = {}
+    for buoy_id in buoy_ids:
+        try:
+            url = f"https://www.ndbc.noaa.gov/data/realtime2/{buoy_id}.dart"
+            r   = requests.get(url, timeout=8)
+            if r.status_code == 200:
+                for line in r.text.strip().split("\n"):
+                    if line.startswith("#"):
+                        continue
+                    parts = line.split()
+                    if len(parts) >= 6:
+                        try:
+                            height = float(parts[5])
+                            results[buoy_id] = {
+                                "water_column_m": height,
+                                "status": "normal",
+                                "timestamp": f"{parts[0]}-{parts[1]}-{parts[2]}T{parts[3]}:{parts[4]}"
+                            }
+                            break
+                        except:
+                            continue
+        except Exception as e:
+            results[buoy_id] = {"error": str(e)}
+
+    active = {k: v for k, v in results.items()
+              if isinstance(v, dict) and "water_column_m" in v}
+    print(f"[DART] {len(active)}/{len(buoy_ids)} buoys responding")
+    return results
+
+
+# ── MOST MODEL ───────────────────────────────────────────────────
 
 @dataclass
 class TsunamiSource:
-    """Earthquake source parameters for tsunami generation"""
-    magnitude: float          # Moment magnitude Mw
-    epicenter_lat: float      # degrees
-    epicenter_lon: float      # degrees
-    depth_km: float           # focal depth
-    fault_length_km: float    # rupture length
-    fault_width_km: float     # rupture width
-    fault_strike: float       # degrees - fault orientation
-    fault_dip: float          # degrees - fault dip angle
-    rake: float               # degrees - slip direction
-    slip_m: float             # average slip in meters
+    magnitude: float
+    epicenter_lat: float
+    epicenter_lon: float
+    depth_km: float
+    fault_length_km: float
+    fault_width_km: float
+    fault_strike: float
+    fault_dip: float
+    rake: float
+    slip_m: float
+    place: str = "Unknown"
+    live: bool = False
 
     @classmethod
-    def from_magnitude(cls, magnitude: float, lat: float, lon: float, 
-                      depth: float = 10.0, fault_type: str = "reverse"):
-        """Auto-calculate fault parameters from magnitude using scaling relations"""
-        # Wells & Coppersmith 1994 scaling relations
-        log_L = 0.69 * magnitude - 3.22  # fault length
-        log_W = 0.27 * magnitude - 0.63  # fault width  
-        log_slip = 0.82 * magnitude - 4.46  # average slip
+    def from_magnitude(cls, magnitude: float, lat: float, lon: float,
+                       depth: float = 10.0, fault_type: str = "reverse",
+                       place: str = "Unknown", live: bool = False):
+        log_L = 0.69 * magnitude - 3.22
+        log_W = 0.27 * magnitude - 0.63
+        log_s = 0.82 * magnitude - 4.46
+        L, W, slip = 10**log_L, 10**log_W, 10**log_s
+        if fault_type == "reverse":    strike, dip, rake = 0, 15, 90
+        elif fault_type == "normal":   strike, dip, rake = 0, 60, -90
+        else:                          strike, dip, rake = 0, 90, 0
+        return cls(magnitude, lat, lon, depth, L, W, strike, dip, rake, slip, place, live)
 
-        L = 10**log_L
-        W = 10**log_W
-        slip = 10**log_slip
+    @classmethod
+    def from_live_event(cls, quake: dict) -> "TsunamiSource":
+        fault = quake.get("fault_type", "reverse")
+        return cls.from_magnitude(
+            quake["magnitude"], quake["lat"], quake["lon"],
+            quake["depth_km"], fault, quake.get("place", "Unknown"), live=True
+        )
 
-        # Fault geometry by type
-        if fault_type == "reverse":
-            strike, dip, rake = 0, 15, 90
-        elif fault_type == "normal":
-            strike, dip, rake = 0, 60, -90
-        else:
-            strike, dip, rake = 0, 90, 0
-
-        return cls(magnitude, lat, lon, depth, L, W, strike, dip, rake, slip)
 
 @dataclass
 class CoastalSite:
-    """Coastal location for tsunami impact assessment"""
     name: str
     lat: float
     lon: float
-    ocean_depth_m: float      # average ocean depth on path
-    coastal_slope: float      # beach slope angle degrees
+    ocean_depth_m: float
+    coastal_slope: float
     population: int
-    elevation_m: float        # coastal elevation above sea level
+    elevation_m: float
     has_seawall: bool
     seawall_height_m: float
 
+
 @dataclass
 class TsunamiImpact:
-    """Tsunami impact at a coastal site"""
     site: CoastalSite
-    travel_time_min: float    # minutes from source to coast
-    wave_height_m: float      # open ocean wave height
-    runup_height_m: float     # maximum runup height on shore
-    inundation_distance_m: float  # how far inland water reaches
-    arrival_speed_ms: float   # wave speed at coast
+    source: TsunamiSource
+    travel_time_min: float
+    wave_height_m: float
+    runup_height_m: float
+    inundation_distance_m: float
+    arrival_speed_ms: float
     threat_level: str
-    evacuation_time_min: float  # time available for evacuation
+    evacuation_time_min: float
     people_at_risk: int
     warning_issued: bool
+    dart_confirmation: bool
 
     def summary(self):
-        hrs = int(self.travel_time_min // 60)
+        hrs  = int(self.travel_time_min // 60)
         mins = int(self.travel_time_min % 60)
         return (
+            f"Source:              M{self.source.magnitude} — {self.source.place}"
+            f" {'[LIVE]' if self.source.live else ''}\n"
             f"Travel Time:         {hrs}h {mins}min\n"
             f"Open Ocean Height:   {self.wave_height_m:.2f}m\n"
             f"Runup Height:        {self.runup_height_m:.1f}m\n"
@@ -77,301 +196,185 @@ class TsunamiImpact:
             f"Wave Speed:          {self.arrival_speed_ms*3.6:.0f}km/h\n"
             f"Evacuation Window:   {self.evacuation_time_min:.0f}min\n"
             f"People at Risk:      {self.people_at_risk:,}\n"
+            f"DART Confirmation:   {'YES' if self.dart_confirmation else 'Pending'}\n"
             f"Threat Level:        {self.threat_level.upper()}"
         )
 
+
 class MOSTModel:
     """
-    Method of Splitting Tsunamis (MOST).
-    
-    Reference: Titov, V.V. and Synolakis, C.E. 1998.
-    Numerical Modeling of Tidal Wave Runup.
-    Journal of Waterway, Port, Coastal, and Ocean Engineering.
-    
-    Also: Gica et al. 2008. Sensitivity analysis of source parameters
-    for tsunamis generated in the Aleutian-Alaska subduction zone.
-    
-    The actual model used by NOAA's Tsunami Warning Centers.
-    Calculates wave propagation, shoaling, and runup.
+    NOAA MOST — Method of Splitting Tsunamis.
+    Pulls live USGS earthquake data and DART buoy readings automatically.
+
+    Reference: Titov & Synolakis 1998.
     """
 
-    GRAVITY = 9.81  # m/s2
-    OCEAN_DENSITY = 1025  # kg/m3
+    GRAVITY = 9.81
 
     def _initial_wave_height(self, source: TsunamiSource) -> float:
-        # Empirical scaling — Abe 1979 tsunami magnitude relation
-        # M9.1 → ~1.5m open ocean, M8.1 → ~0.3m, M7.5 → ~0.05m
-        mt = 0.5 * source.magnitude - 3.5  # tsunami magnitude
-        eta_0 = 10 ** (mt - 0.5)
-        return max(0.02, min(eta_0, 2.0))
+        dip_rad  = math.radians(source.fault_dip)
+        rake_rad = math.radians(source.rake)
+        delta_u  = source.slip_m * math.sin(dip_rad) * math.sin(rake_rad)
+        mag_scale = 10**((source.magnitude - 8.0) * 0.5)
+        eta_0 = abs(delta_u) * (1 - math.exp(-source.fault_length_km * source.fault_width_km / 50000))
+        return max(0.05, min(eta_0 * mag_scale, 2.0))
 
-    def _wave_speed(self, depth_m: float) -> float:
-        """
-        Shallow water wave speed: c = sqrt(g*h)
-        Valid when wavelength >> depth (always true for tsunamis).
-        """
-        return math.sqrt(self.GRAVITY * max(depth_m, 1.0))
+    def _travel_time(self, source: TsunamiSource, site: CoastalSite) -> float:
+        R  = 6371000
+        d  = lambda x: math.radians(x)
+        a  = (math.sin(d(site.lat - source.epicenter_lat)/2)**2 +
+              math.cos(d(source.epicenter_lat)) * math.cos(d(site.lat)) *
+              math.sin(d(site.lon - source.epicenter_lon)/2)**2)
+        dist = R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+        speed = math.sqrt(self.GRAVITY * max(site.ocean_depth_m, 1.0))
+        return (dist / speed) / 60
 
-    def _travel_time(
-        self,
-        source: TsunamiSource,
-        site: CoastalSite
-    ) -> float:
-        """
-        Calculate tsunami travel time from source to coastal site.
-        Uses great circle distance with average ocean depth.
-        Returns travel time in minutes.
-        """
-        # Great circle distance
-        R = 6371000  # Earth radius m
-        lat1 = math.radians(source.epicenter_lat)
-        lat2 = math.radians(site.lat)
-        dlat = math.radians(site.lat - source.epicenter_lat)
-        dlon = math.radians(site.lon - source.epicenter_lon)
+    def _shoaling(self, ocean_depth: float) -> float:
+        return min((ocean_depth / 10.0)**0.25, 2.0)
 
-        a = (math.sin(dlat/2)**2 +
-             math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2)
-        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-        distance_m = R * c
-
-        # Average wave speed over path
-        avg_speed = self._wave_speed(site.ocean_depth_m)
-
-        travel_time_sec = distance_m / avg_speed
-        return travel_time_sec / 60  # convert to minutes
-
-    
-    def _shoaling_coefficient(
-        self,
-        deep_water_height: float,
-        ocean_depth: float,
-        coastal_depth: float = 10.0
-    ) -> float:
-        # Green's Law with hard cap at 2x
-        ratio = min(ocean_depth / coastal_depth, 500)
-        return min(ratio ** 0.25, 2.0)
-
-    def _runup_height(self, wave_height_m, site):
+    def _runup(self, wave_height_m: float, site: CoastalSite) -> float:
         beta = math.radians(max(site.coastal_slope, 0.5))
-        # Simplified empirical runup — typically 2-5x wave height
-        amplification = min(2.0 / math.tan(beta), 8.0)
-        runup = wave_height_m * amplification
+        amp  = min(2.0 / math.tan(beta), 8.0)
+        runup = wave_height_m * amp
         if site.has_seawall:
             runup = max(0, runup - site.seawall_height_m * 0.7)
         return max(wave_height_m, runup)
 
-    def _inundation_distance(
-        self,
-        runup_height: float,
-        site: CoastalSite
-    ) -> float:
-        """
-        Estimate horizontal inundation distance.
-        Uses Manning's equation approximation.
-        """
+    def _inundation(self, runup_m: float, site: CoastalSite) -> float:
         if site.coastal_slope <= 0:
-            return runup_height * 1000  # flat terrain
+            return runup_m * 500
+        return max(0, (runup_m - site.elevation_m) / math.tan(math.radians(site.coastal_slope)))
 
-        slope_rad = math.radians(site.coastal_slope)
-        
-        # Simple geometric approximation
-        # Distance = runup_height / tan(slope)
-        distance = (runup_height - site.elevation_m) / math.tan(slope_rad)
-        
-        return max(0, distance)
-
-    def _people_at_risk(
-        self,
-        site: CoastalSite,
-        inundation_distance: float
-    ) -> int:
-        """Estimate population in inundation zone."""
-        # Population density in coastal strip
-        coastal_strip_m = 500  # standard coastal zone
-        fraction_inundated = min(inundation_distance / coastal_strip_m, 1.0)
-        return int(site.population * fraction_inundated)
-
-    def _threat_level(
-        self,
-        runup: float,
-        inundation: float,
-        people: int
-    ) -> str:
-        if runup > 5.0 or inundation > 500 or people > 10000:
-            return "critical"
-        elif runup > 2.0 or inundation > 200 or people > 1000:
-            return "high"
-        elif runup > 0.5 or inundation > 50:
-            return "medium"
+    def _threat(self, runup: float, inundation: float, people: int) -> str:
+        if runup > 5.0 or inundation > 500 or people > 10000: return "critical"
+        elif runup > 2.0 or inundation > 200 or people > 1000: return "high"
+        elif runup > 0.5 or inundation > 50:                   return "medium"
         return "low"
 
-    def calculate(
-        self,
-        source: TsunamiSource,
-        site: CoastalSite
-    ) -> TsunamiImpact:
-        """
-        Calculate tsunami impact at a coastal site.
-        
-        Args:
-            source: Earthquake/tsunami source parameters
-            site: Coastal site properties
-            
-        Returns:
-            TsunamiImpact with arrival time, wave height, runup, inundation
-        """
-        # Initial wave height from fault
-        eta_0 = self._initial_wave_height(source)
-
-        # Travel time
+    def calculate(self, source: TsunamiSource, site: CoastalSite,
+                  dart_data: dict = None) -> TsunamiImpact:
+        eta_0      = self._initial_wave_height(source)
         travel_min = self._travel_time(source, site)
+        K_s        = self._shoaling(site.ocean_depth_m)
+        wave_h     = eta_0 * K_s
+        runup      = self._runup(wave_h, site)
+        inundation = self._inundation(runup, site)
+        people     = int(site.population * min(inundation / 500, 1.0))
+        evac_window = max(0, travel_min - 10)
+        threat     = self._threat(runup, inundation, people)
+        c_coast    = math.sqrt(self.GRAVITY * 20.0)
 
-        # Wave speed at coast
-        c_coast = self._wave_speed(20.0)  # 20m coastal depth
-
-        # Shoaling amplification
-        K_s = self._shoaling_coefficient(eta_0, site.ocean_depth_m)
-        wave_height = eta_0 * K_s
-
-        # Runup
-        runup = self._runup_height(wave_height, site)
-
-        # Inundation
-        inundation = self._inundation_distance(runup, site)
-
-        # People at risk
-        people = self._people_at_risk(site, inundation)
-
-        # Evacuation window
-        # Standard evacuation speed ~3km/h on foot
-        # Need to reach high ground (assume 500m away)
-        evacuation_needed_min = (500 / 3000) * 60  # ~10 min to reach safety
-        evacuation_window = max(0, travel_min - evacuation_needed_min)
-
-        # Threat
-        threat = self._threat_level(runup, inundation, people)
+        # Check DART buoy confirmation
+        dart_confirmed = False
+        if dart_data:
+            for buoy_id, reading in dart_data.items():
+                if isinstance(reading, dict) and reading.get("status") == "anomaly":
+                    dart_confirmed = True
+                    break
 
         return TsunamiImpact(
-            site=site,
+            site=site, source=source,
             travel_time_min=travel_min,
-            wave_height_m=wave_height,
+            wave_height_m=wave_h,
             runup_height_m=runup,
             inundation_distance_m=inundation,
             arrival_speed_ms=c_coast,
             threat_level=threat,
-            evacuation_time_min=evacuation_window,
+            evacuation_time_min=evac_window,
             people_at_risk=people,
-            warning_issued=travel_min > 20
+            warning_issued=travel_min > 20,
+            dart_confirmation=dart_confirmed
         )
 
-    def regional_assessment(
-        self,
-        source: TsunamiSource,
-        sites: List[CoastalSite]
-    ) -> List[TsunamiImpact]:
-        """Assess tsunami impact across multiple coastal sites."""
-        results = []
-        for site in sites:
-            impact = self.calculate(source, site)
-            results.append(impact)
+    def regional_assessment(self, source: TsunamiSource, sites: List[CoastalSite],
+                            dart_data: dict = None) -> List[TsunamiImpact]:
+        results = [self.calculate(source, site, dart_data) for site in sites]
         return sorted(results, key=lambda x: x.travel_time_min)
 
-    def beacon_priority_zones(
-        self,
-        source: TsunamiSource,
-        sites: List[CoastalSite]
-    ) -> dict:
-        """Generate Beacon priority zones from MOST output."""
-        impacts = self.regional_assessment(source, sites)
-        zones = {"red": [], "orange": [], "yellow": []}
+    def calculate_live(self, sites: List[CoastalSite]) -> List[TsunamiImpact]:
+        """
+        Auto-fetch latest tsunamigenic earthquakes and DART buoy data,
+        then calculate impact at all coastal sites.
+        """
+        print("[MOST] Fetching live tsunami-generating earthquakes...")
+        quakes = get_tsunami_generating_earthquakes(hours_back=48)
 
-        for impact in impacts:
-            if impact.threat_level == "critical":
-                zones["red"].append({
-                    "site": impact.site.name,
-                    "arrival_min": impact.travel_time_min,
-                    "runup_m": impact.runup_height_m,
-                    "people": impact.people_at_risk,
-                    "evacuation_window_min": impact.evacuation_time_min,
-                    "deploy": "drone"
-                })
-            elif impact.threat_level == "high":
-                zones["orange"].append({
-                    "site": impact.site.name,
-                    "arrival_min": impact.travel_time_min,
-                    "runup_m": impact.runup_height_m,
-                    "deploy": "sub"
-                })
-            else:
-                zones["yellow"].append({
-                    "site": impact.site.name,
-                    "arrival_min": impact.travel_time_min,
-                    "deploy": "drone"
-                })
+        print("[MOST] Fetching DART buoy readings...")
+        dart = get_dart_buoy_readings()
 
+        print("[MOST] Checking active tsunami warnings...")
+        warnings = get_active_tsunami_warnings()
+        if warnings:
+            print(f"[MOST] ⚠️  ACTIVE TSUNAMI WARNINGS: {[w['status'] for w in warnings]}")
+        else:
+            print("[MOST] No active tsunami warnings.")
+
+        if not quakes:
+            print("[MOST] No significant earthquakes detected.")
+            return []
+
+        largest = max(quakes, key=lambda q: q["magnitude"])
+        print(f"[MOST] Running on M{largest['magnitude']} — {largest['place']}")
+        source = TsunamiSource.from_live_event(largest)
+        return self.regional_assessment(source, sites, dart)
+
+    def beacon_priority_zones(self, source: TsunamiSource,
+                              sites: List[CoastalSite], dart_data: dict = None) -> dict:
+        impacts = self.regional_assessment(source, sites, dart_data)
+        zones   = {"red": [], "orange": [], "yellow": []}
+        for imp in impacts:
+            color = {"critical": "red", "high": "orange"}.get(imp.threat_level, "yellow")
+            zones[color].append({
+                "site":                 imp.site.name,
+                "arrival_min":          imp.travel_time_min,
+                "runup_m":              imp.runup_height_m,
+                "people":               imp.people_at_risk,
+                "evacuation_window_min":imp.evacuation_time_min,
+                "dart_confirmed":       imp.dart_confirmation,
+                "deploy":               "drone"
+            })
         return zones
 
 
 if __name__ == "__main__":
     model = MOSTModel()
+    print("🌊 NOAA MOST — Live USGS + DART Buoy Integration\n")
 
-    print("🌊 NOAA MOST TSUNAMI PROPAGATION MODEL")
-    print("Method of Splitting Tsunamis — Titov & Synolakis 1998\n")
+    # Pacific coastal sites for live assessment
+    pacific_sites = [
+        CoastalSite("Honolulu HI",     21.31, -157.86, 4000, 8,  400000, 30, True, 3),
+        CoastalSite("Crescent City CA", 41.75, -124.20, 1500, 5, 7000,   10, False, 0),
+        CoastalSite("Hilo HI",         19.73, -155.09, 3000, 6, 45000,  15, True, 2),
+        CoastalSite("Astoria OR",      46.19, -123.83, 1200, 4, 10000,   8, False, 0),
+        CoastalSite("Seaside OR",      45.99, -123.92, 1100, 2, 6500,    5, False, 0),
+    ]
 
-    # 2004 Indian Ocean Tsunami
+    print("=" * 55)
+    print("LIVE MODE — Latest Tsunamigenic Earthquakes + DART")
+    print("=" * 55)
+    live_results = model.calculate_live(pacific_sites)
+    if live_results:
+        for impact in live_results:
+            print(f"\n📍 {impact.site.name}")
+            print(impact.summary())
+    else:
+        print("No active tsunamigenic threats detected.")
+
+    # Manual scenario
+    print(f"\n{'='*55}")
+    print("MANUAL: 2004 Indian Ocean M9.1")
+    print(f"{'='*55}")
     source_2004 = TsunamiSource(
-        magnitude=9.1,
-        epicenter_lat=3.30,
-        epicenter_lon=95.78,
-        depth_km=30.0,
-        fault_length_km=1300,
-        fault_width_km=150,
-        fault_strike=340,
-        fault_dip=8,
-        rake=90,
-        slip_m=15.0
+        magnitude=9.1, epicenter_lat=3.30, epicenter_lon=95.78,
+        depth_km=30.0, fault_length_km=1300, fault_width_km=150,
+        fault_strike=340, fault_dip=8, rake=90, slip_m=15.0,
+        place="Off Coast of Sumatra, Indonesia"
     )
-
-    sites_2004 = [
+    indian_sites = [
         CoastalSite("Banda Aceh Indonesia", 5.55, 95.32, 1000, 2, 300000, 3, False, 0),
-        CoastalSite("Phuket Thailand", 7.88, 98.40, 2000, 3, 150000, 5, False, 0),
-        CoastalSite("Colombo Sri Lanka", 6.93, 79.85, 3500, 2, 800000, 4, False, 0),
-        CoastalSite("Chennai India", 13.08, 80.27, 1500, 1, 2000000, 3, False, 0),
-        CoastalSite("Male Maldives", 4.17, 73.51, 800, 1, 100000, 1, False, 0),
-        CoastalSite("Mombasa Kenya", -4.05, 39.67, 4000, 3, 500000, 10, False, 0),
+        CoastalSite("Phuket Thailand",      7.88, 98.40, 2000, 3, 150000, 5, False, 0),
+        CoastalSite("Colombo Sri Lanka",    6.93, 79.85, 3500, 2, 800000, 4, False, 0),
     ]
-
-    print("="*60)
-    print("SCENARIO: 2004 Indian Ocean Tsunami — M9.1")
-    print("="*60)
-
-    impacts = model.regional_assessment(source_2004, sites_2004)
-    for impact in impacts:
-        hrs = int(impact.travel_time_min // 60)
-        mins = int(impact.travel_time_min % 60)
-        print(f"\n📍 {impact.site.name}")
-        print(impact.summary())
-
-    # 2021 Kermadec
-    source_kermadec = TsunamiSource.from_magnitude(
-        8.1, -29.72, -177.28, 10.0, "reverse"
-    )
-
-    sites_kermadec = [
-        CoastalSite("Auckland NZ", -36.86, 174.76, 1200, 5, 1600000, 10, False, 0),
-        CoastalSite("Gisborne NZ", -38.66, 178.02, 500, 3, 35000, 8, False, 0),
-        CoastalSite("Tonga", -21.13, -175.20, 2000, 2, 100000, 5, False, 0),
-        CoastalSite("Samoa", -13.83, -172.14, 3000, 3, 200000, 8, False, 0),
-        CoastalSite("Hawaii USA", 21.31, -157.86, 4000, 8, 400000, 30, True, 3),
-    ]
-
-    print("\n" + "="*60)
-    print("SCENARIO: 2021 Kermadec M8.1")
-    print("="*60)
-
-    impacts_k = model.regional_assessment(source_kermadec, sites_kermadec)
-    for impact in impacts_k:
-        hrs = int(impact.travel_time_min // 60)
-        mins = int(impact.travel_time_min % 60)
+    for impact in model.regional_assessment(source_2004, indian_sites):
         print(f"\n📍 {impact.site.name}")
         print(impact.summary())
