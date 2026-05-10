@@ -145,7 +145,7 @@ SCENARIOS = {
         "models": ["farsite", "rothermel", "windninja", "consensus"],
         "feeds": ["noaa", "nasa_firms"],
         "demo_location": {"lat": 40.1, "lon": -121.4},
-        "entry": "intergration.py",
+        "entry": "main.ts",
     },
     "earthquake": {
         "name": "Earthquake Structural Assessment",
@@ -153,7 +153,7 @@ SCENARIOS = {
         "models": ["shakemap", "hazus", "pager", "aftershock", "consensus"],
         "feeds": ["usgs"],
         "demo_location": {"lat": 34.05, "lon": -118.25},
-        "entry": "intergration.py",
+        "entry": "main.ts",
     },
     "search": {
         "name": "Search and Rescue (Lost Hiker)",
@@ -161,7 +161,7 @@ SCENARIOS = {
         "models": ["mattson", "consensus"],
         "feeds": ["noaa"],
         "demo_location": {"lat": 37.86, "lon": -119.54},
-        "entry": "intergration.py",
+        "entry": "main.ts",
     },
     "chemical": {
         "name": "Chemical Plume Tracking",
@@ -169,7 +169,7 @@ SCENARIOS = {
         "models": ["aloha", "windninja", "consensus"],
         "feeds": ["noaa"],
         "demo_location": {"lat": 29.38, "lon": -94.90},
-        "entry": "intergration.py",
+        "entry": "main.ts",
     },
     "flood": {
         "name": "Flood and Storm Surge Assessment",
@@ -177,7 +177,7 @@ SCENARIOS = {
         "models": ["hec_ras", "slosh", "consensus"],
         "feeds": ["noaa", "usgs"],
         "demo_location": {"lat": 29.75, "lon": -95.37},
-        "entry": "intergration.py",
+        "entry": "main.ts",
     },
     "landslide": {
         "name": "Landslide Risk Assessment",
@@ -185,7 +185,7 @@ SCENARIOS = {
         "models": ["trigrs", "consensus"],
         "feeds": ["usgs", "noaa"],
         "demo_location": {"lat": 37.20, "lon": -121.98},
-        "entry": "intergration.py",
+        "entry": "main.ts",
     },
     "tsunami": {
         "name": "Tsunami Coastal Assessment",
@@ -193,7 +193,7 @@ SCENARIOS = {
         "models": ["most", "slosh", "consensus"],
         "feeds": ["noaa", "dart_buoy", "usgs"],
         "demo_location": {"lat": 38.80, "lon": 142.37},
-        "entry": "intergration.py",
+        "entry": "main.ts",
     },
 }
 
@@ -344,20 +344,18 @@ class BeaconLauncher:
         self._shutdown_event.set()
 
     def _check_dependencies(self) -> bool:
-        for dep in ["python3"]:
+        for dep in ["python3", "bun"]:
             if subprocess.run(["which", dep], capture_output=True).returncode != 0:
                 log.error(f"Missing dependency: {dep}")
                 return False
         return True
 
     def _launch_dashboard(self):
-        if not Path("server.py").exists():
-            log.warning("server.py not found — dashboard will not start")
+        if not Path("server.ts").exists():
+            log.warning("server.ts not found — dashboard will not start")
             return
         self.pm.spawn(
-            ["python3", "server.py",
-             "--host", self.config.dashboard_host,
-             "--port", str(self.config.dashboard_port)],
+            ["bun", "run", "server.ts"],
             name="dashboard",
         )
         log.info(f"Dashboard → http://{self.config.dashboard_host}:{self.config.dashboard_port}")
@@ -371,7 +369,8 @@ class BeaconLauncher:
         env["BEACON_SCENARIO"]   = scenario
         env["BEACON_SIMULATE"]   = "1" if self.config.simulate else "0"
         env["BEACON_CONNECTION"] = self.config.drone_connection
-        self.pm.spawn(["python3", "-u", entry], name="mission", env=env)
+        cmd = ["bun", "run", entry] if entry.endswith(".ts") else ["python3", "-u", entry]
+        self.pm.spawn(cmd, name="mission", env=env)
 
     def _launch_consensus(self, scenario: str):
         if not Path("consensus.py").exists():
