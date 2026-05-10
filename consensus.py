@@ -389,39 +389,89 @@ class BeaconConsensus:
 
 
 if __name__ == "__main__":
+    import argparse
+    import os
+ 
+    parser = argparse.ArgumentParser(description="Beacon Consensus Engine")
+    parser.add_argument(
+        "--scenario", "-s",
+        default=os.environ.get("BEACON_SCENARIO", "wildfire"),
+        choices=["wildfire", "earthquake", "search", "chemical",
+                 "flood", "landslide", "tsunami", "all"],
+    )
+    parser.add_argument("--lat", type=float, default=None)
+    parser.add_argument("--lon", type=float, default=None)
+    args = parser.parse_args()
+ 
+    # Default coordinates per scenario
+    DEFAULTS = {
+        "wildfire":   (40.1,   -121.4),
+        "earthquake": (34.05,  -118.25),
+        "search":     (37.86,  -119.54),
+        "chemical":   (29.38,   -94.90),
+        "flood":      (29.75,   -95.37),
+        "landslide":  (37.20,  -121.98),
+        "tsunami":    (38.80,   142.37),
+    }
+ 
+    scenario = args.scenario
+    default_lat, default_lon = DEFAULTS.get(scenario, (40.1, -121.4))
+    lat = args.lat if args.lat is not None else default_lat
+    lon = args.lon if args.lon is not None else default_lon
+ 
     beacon = BeaconConsensus()
-
     print("🔺 BEACON MULTI-MODEL CONSENSUS SYSTEM")
-    print("All models unified into one priority map\n")
-
-    # Scenario 1 — Wildfire + lost hiker
-    result = beacon.run(
-        lat=40.1, lon=-121.4,
-        scenario="wildfire",
-        subject_category=SubjectCategory.HIKER,
-        hours_missing=3,
-        terrain="forest",
-        fuel_model=4,
-        slope=20
-    )
-    print(result.summary())
-
-    # Scenario 2 — Earthquake
-    print("\n" + "="*60)
-    quake = EarthquakeEvent(6.8, 18.5, 31.12, -8.38, "strike_slip")
-    result2 = beacon.run(
-        lat=31.2, lon=-8.3,
-        scenario="earthquake",
-        earthquake=quake
-    )
-    print(result2.summary())
-
-    # Scenario 3 — Chemical spill
-    print("\n" + "="*60)
-    chem = ReleaseScenario("chlorine", ReleaseType.INSTANTANEOUS, 5000, 83.3, 60, 1.0, 29.38, -94.90)
-    result3 = beacon.run(
-        lat=29.38, lon=-94.90,
-        scenario="chemical",
-        chemical_scenario=chem
-    )
-    print(result3.summary())
+    print(f"Scenario: {scenario.upper()} | Location: ({lat}, {lon})\n")
+ 
+    if scenario == "all":
+        # Explicit opt-in to run all demos
+        quake = EarthquakeEvent(6.8, 18.5, 31.12, -8.38, "strike_slip")
+        chem  = ReleaseScenario("chlorine", ReleaseType.INSTANTANEOUS,
+                                 5000, 83.3, 60, 1.0, 29.38, -94.90)
+        for r in [
+            beacon.run(lat=40.1, lon=-121.4, scenario="wildfire",
+                       subject_category=SubjectCategory.HIKER,
+                       hours_missing=3, terrain="forest", fuel_model=4, slope=20),
+            beacon.run(lat=31.2, lon=-8.3, scenario="earthquake", earthquake=quake),
+            beacon.run(lat=29.38, lon=-94.90, scenario="chemical", chemical_scenario=chem),
+        ]:
+            print(r.summary())
+            print("\n" + "=" * 60)
+ 
+    elif scenario == "wildfire":
+        result = beacon.run(
+            lat=lat, lon=lon, scenario="wildfire",
+            subject_category=SubjectCategory.HIKER,
+            hours_missing=3, terrain="forest", fuel_model=4, slope=20,
+        )
+        print(result.summary())
+ 
+    elif scenario == "earthquake":
+        quake = EarthquakeEvent(6.8, 10.0, lat, lon, "strike_slip")
+        result = beacon.run(lat=lat, lon=lon, scenario="earthquake", earthquake=quake)
+        print(result.summary())
+ 
+    elif scenario == "search":
+        result = beacon.run(
+            lat=lat, lon=lon, scenario="sar",
+            subject_category=SubjectCategory.HIKER,
+            hours_missing=6, terrain="forest",
+        )
+        print(result.summary())
+ 
+    elif scenario == "chemical":
+        chem = ReleaseScenario("chlorine", ReleaseType.INSTANTANEOUS,
+                               5000, 83.3, 60, 1.0, lat, lon)
+        result = beacon.run(lat=lat, lon=lon, scenario="chemical", chemical_scenario=chem)
+        print(result.summary())
+ 
+    else:
+        # flood / landslide / tsunami — need extra params not yet wired to CLI
+        print(f"[WARNING] '{scenario}' needs additional CLI params not yet implemented.")
+        print("Running wildfire at specified coordinates as fallback.")
+        result = beacon.run(
+            lat=lat, lon=lon, scenario="wildfire",
+            subject_category=SubjectCategory.HIKER,
+            hours_missing=3, terrain="mountain", fuel_model=2, slope=30,
+        )
+        print(result.summary())
