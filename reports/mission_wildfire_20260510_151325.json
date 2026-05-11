@@ -1,0 +1,21 @@
+{
+  "scenario": "wildfire",
+  "start_time": "2026-05-10T15:13:25.174216",
+  "end_time": "2026-05-10T15:22:26.990389",
+  "duration_s": 541,
+  "simulate_mode": true,
+  "total_alerts": 0,
+  "alerts": [],
+  "events": [
+    {
+      "time": "2026-05-10T15:13:25.174228",
+      "type": "launch",
+      "detail": "Scenario: wildfire"
+    },
+    {
+      "time": "2026-05-10T15:22:26.989470",
+      "type": "shutdown",
+      "detail": "Mission ended"
+    }
+  ]
+}

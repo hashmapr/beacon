@@ -1,0 +1,90 @@
+2026-05-10 15:13:25,171 [INFO] beacon: ============================================================
+2026-05-10 15:13:25,171 [INFO] beacon: 🔺 BEACON AUTONOMOUS DISASTER RESPONSE SYSTEM
+2026-05-10 15:13:25,171 [INFO] beacon: ============================================================
+2026-05-10 15:13:25,171 [INFO] beacon: Scenario      : Wildfire Perimeter Mapping
+2026-05-10 15:13:25,171 [INFO] beacon: Simulate mode : True
+2026-05-10 15:13:25,171 [INFO] beacon: Connection    : udp:127.0.0.1:14550
+2026-05-10 15:13:25,171 [INFO] beacon: Log file      : logs/beacon_20260510_151325.log
+2026-05-10 15:13:25,171 [INFO] beacon: ============================================================
+2026-05-10 15:13:25,174 [WARNING] beacon: server.py not found — dashboard will not start
+2026-05-10 15:13:26,684 [INFO] beacon: [mission] started (PID 47660)
+2026-05-10 15:13:26,688 [INFO] beacon: [consensus] started (PID 47661)
+2026-05-10 15:13:26,689 [INFO] beacon: Beacon is running. Press Ctrl+C to stop.
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus] 🔺 BEACON MULTI-MODEL CONSENSUS SYSTEM
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus] Scenario: WILDFIRE | Location: (40.1, -121.4)
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus] [BEACON] Running consensus for scenario: WILDFIRE
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus] [NOAA] Fetching conditions for (40.1, -121.4)...
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus] [NOAA] Nearest station: CDEC1 — CARPENTER RIDGE
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus] [CONSENSUS] Weather: 3.6mph, 50% humidity
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus] [CONSENSUS] Rothermel: 2.04mph, threat=critical
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus] [FARSITE] Starting fire spread prediction...
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus]   Ignition: (40.1, -121.4)
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus]   Wind: 3.6239400000000006mph @ 261°
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus]   Fuel moisture: 15.2%
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus]   Duration: 6h
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus] [FARSITE] Simulation complete (exit code: 0)
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus] [FARSITE] Priority zones generated:
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus]   RED: CRITICAL — Direct fire path → Deploy drone
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus]   ORANGE: HIGH — Flanking zones → Deploy rover
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus]   YELLOW: MODERATE — Spotfire risk ahead → Deploy drone
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus] [CONSENSUS] FARSITE: 3 zones generated
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus] [MATTSON] Fetching live conditions for (40.1, -121.4)...
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus] [CONSENSUS] Mattson: zone 1 probability 54%
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus] ============================================================
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus] BEACON CONSENSUS PRIORITY MAP
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus] ============================================================
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus] Scenario:  WILDFIRE
+2026-05-10 15:13:27,547 [INFO] beacon: [consensus] Location:  (40.1, -121.4)
+2026-05-10 15:13:27,548 [INFO] beacon: [consensus] Models:    NOAA, rothermel, farsite, mattson
+2026-05-10 15:13:27,548 [INFO] beacon: [consensus] Time:      2026-05-10 15:13:26
+2026-05-10 15:13:27,548 [INFO] beacon: [consensus] PRIORITY ZONES:
+2026-05-10 15:13:27,548 [INFO] beacon: [consensus]   [RED] Zone 1 — CRITICAL — 3 model(s) agree
+2026-05-10 15:13:27,548 [INFO] beacon: [consensus]   Models:  Rothermel, FARSITE, Mattson
+2026-05-10 15:13:27,548 [INFO] beacon: [consensus]   Radius:  5.0km
+2026-05-10 15:13:27,548 [INFO] beacon: [consensus]   Threat:  CRITICAL
+2026-05-10 15:13:27,548 [INFO] beacon: [consensus]   Deploy:  DRONE
+2026-05-10 15:13:27,548 [INFO] beacon: [consensus]   [YELLOW] Zone 3 — MODERATE — monitoring active
+2026-05-10 15:13:27,548 [INFO] beacon: [consensus]   Models:  Rothermel, Mattson, FARSITE
+2026-05-10 15:13:27,548 [INFO] beacon: [consensus]   Radius:  40.0km
+2026-05-10 15:13:27,548 [INFO] beacon: [consensus]   Threat:  MEDIUM
+2026-05-10 15:13:27,548 [INFO] beacon: [consensus]   Deploy:  DRONE
+2026-05-10 15:13:56,696 [WARNING] beacon: PID 47661 exited (code 0) — removed from watch list
+2026-05-10 15:14:17,934 [INFO] beacon: [mission] [BEACON] 🖼️  Demo frame loaded: wildfire (cached)
+2026-05-10 15:14:17,935 [INFO] beacon: [mission] ==================================================
+2026-05-10 15:14:17,935 [INFO] beacon: [mission] 🔺 BEACON INTEGRATION
+2026-05-10 15:14:17,935 [INFO] beacon: [mission] ==================================================
+2026-05-10 15:14:17,935 [INFO] beacon: [mission] Scenario  : WILDFIRE
+2026-05-10 15:14:17,935 [INFO] beacon: [mission] Simulate  : True
+2026-05-10 15:14:17,935 [INFO] beacon: [mission] Duration  : 30s
+2026-05-10 15:14:17,935 [INFO] beacon: [mission] Frame     : /Users/tanayshah/drone/snapshot.jpg
+2026-05-10 15:14:17,935 [INFO] beacon: [mission] 🚁 Connecting to drone...
+2026-05-10 15:14:17,936 [INFO] beacon: [mission] ✅ Connected! System 0
+2026-05-10 15:14:17,936 [INFO] beacon: [mission] Setting GUIDED mode...
+2026-05-10 15:14:17,936 [INFO] beacon: [mission] Arming...
+2026-05-10 15:14:17,936 [INFO] beacon: [mission] Taking off to 10m...
+2026-05-10 15:14:17,936 [INFO] beacon: [mission] ✅ Airborne!
+2026-05-10 15:14:17,936 [INFO] beacon: [mission] [BEACON] Waiting for telemetry lock...
+2026-05-10 15:14:17,936 [INFO] beacon: [mission] [BEACON] 👁️  Scan 1 | Scenario: WILDFIRE | Position: (0.0, 0.0) | Alt: 0.0m
+2026-05-10 15:14:17,936 [INFO] beacon: [mission] [BEACON] Mission running for 30 seconds...
+2026-05-10 15:14:17,936 [INFO] beacon: [mission] [BEACON] Press Ctrl+C to stop early
+2026-05-10 15:14:17,936 [INFO] beacon: [mission] [BEACON] ✓ The image shows a serene scene of a forest with pine trees and a blue sky. No anomalies are visible.
+2026-05-10 15:14:17,936 [INFO] beacon: [mission] [BEACON] 👁️  Scan 2 | Scenario: WILDFIRE | Position: (0.0, 0.0) | Alt: 0.0m
+2026-05-10 15:14:17,936 [INFO] beacon: [mission] [BEACON] ✓ The image shows a forest with tall trees and no signs of fire or flood. The area appears to be lush and green, indicative of a healthy ecosystem. There are no visible structures that require attention, debris or waste, and there is no evidence of wildlife or people present.
+2026-05-10 15:14:17,936 [INFO] beacon: [mission] [BEACON] 👁️  Scan 3 | Scenario: WILDFIRE | Position: (0.0, 0.0) | Alt: 0.0m
+2026-05-10 15:14:17,936 [INFO] beacon: [mission] [BEACON] ✓ There is nothing unusual or requiring attention in this aerial image of a forest.
+2026-05-10 15:14:17,936 [INFO] beacon: [mission] [BEACON] 👁️  Scan 4 | Scenario: WILDFIRE | Position: (0.0, 0.0) | Alt: 0.0m
+2026-05-10 15:14:17,936 [INFO] beacon: [mission] ==================================================
+2026-05-10 15:14:17,936 [INFO] beacon: [mission] 📊 MISSION SUMMARY
+2026-05-10 15:14:17,937 [INFO] beacon: [mission] ==================================================
+2026-05-10 15:14:17,937 [INFO] beacon: [mission]   Scenario:     WILDFIRE
+2026-05-10 15:14:17,937 [INFO] beacon: [mission]   Duration:     30s
+2026-05-10 15:14:17,937 [INFO] beacon: [mission]   Total alerts: 0
+2026-05-10 15:14:17,937 [INFO] beacon: [mission] 🛬 Landing...
+2026-05-10 15:14:17,937 [INFO] beacon: [mission] ✅ BEACON integration complete
+2026-05-10 15:14:26,705 [INFO] beacon: All subprocesses have completed — Beacon idle. Press Ctrl+C to exit.
+2026-05-10 15:22:24,979 [INFO] beacon: Signal 2 received — initiating shutdown
+2026-05-10 15:22:24,982 [INFO] beacon: Shutting down Beacon...
+2026-05-10 15:22:24,982 [INFO] beacon: Shutting down all Beacon processes...
+2026-05-10 15:22:26,987 [INFO] beacon: All processes stopped.
+2026-05-10 15:22:26,991 [INFO] beacon: Mission report saved: reports/mission_wildfire_20260510_151325.json
+2026-05-10 15:22:26,991 [INFO] beacon: Beacon stopped cleanly.

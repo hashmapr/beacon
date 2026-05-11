@@ -1,0 +1,180 @@
+2026-05-10 15:00:48,663 [INFO] beacon: ============================================================
+2026-05-10 15:00:48,663 [INFO] beacon: 🔺 BEACON AUTONOMOUS DISASTER RESPONSE SYSTEM
+2026-05-10 15:00:48,663 [INFO] beacon: ============================================================
+2026-05-10 15:00:48,663 [INFO] beacon: Scenario      : Wildfire Perimeter Mapping
+2026-05-10 15:00:48,663 [INFO] beacon: Simulate mode : True
+2026-05-10 15:00:48,663 [INFO] beacon: Connection    : udp:127.0.0.1:14550
+2026-05-10 15:00:48,663 [INFO] beacon: Log file      : logs/beacon_20260510_150048.log
+2026-05-10 15:00:48,663 [INFO] beacon: ============================================================
+2026-05-10 15:00:48,667 [WARNING] beacon: server.py not found — dashboard will not start
+2026-05-10 15:00:50,178 [INFO] beacon: [mission] started (PID 22943)
+2026-05-10 15:00:50,184 [INFO] beacon: [consensus] started (PID 22944)
+2026-05-10 15:00:50,185 [INFO] beacon: Beacon is running. Press Ctrl+C to stop.
+2026-05-10 15:00:56,423 [INFO] beacon: [consensus] 🔺 BEACON MULTI-MODEL CONSENSUS SYSTEM
+2026-05-10 15:00:56,424 [INFO] beacon: [consensus] Scenario: WILDFIRE | Location: (40.1, -121.4)
+2026-05-10 15:00:56,424 [INFO] beacon: [consensus] [BEACON] Running consensus for scenario: WILDFIRE
+2026-05-10 15:00:56,424 [INFO] beacon: [consensus] [NOAA] Fetching conditions for (40.1, -121.4)...
+2026-05-10 15:00:56,424 [INFO] beacon: [consensus] [NOAA] Nearest station: CDEC1 — CARPENTER RIDGE
+2026-05-10 15:00:56,424 [INFO] beacon: [consensus] [CONSENSUS] Weather: 3.6mph, 50% humidity
+2026-05-10 15:00:56,424 [INFO] beacon: [consensus] [CONSENSUS] Rothermel: 2.04mph, threat=critical
+2026-05-10 15:00:56,424 [INFO] beacon: [consensus] [FARSITE] Starting fire spread prediction...
+2026-05-10 15:00:56,424 [INFO] beacon: [consensus]   Ignition: (40.1, -121.4)
+2026-05-10 15:00:56,424 [INFO] beacon: [consensus]   Wind: 3.6239400000000006mph @ 261°
+2026-05-10 15:00:56,424 [INFO] beacon: [consensus]   Fuel moisture: 15.2%
+2026-05-10 15:00:56,424 [INFO] beacon: [consensus]   Duration: 6h
+2026-05-10 15:00:56,424 [INFO] beacon: [consensus] [FARSITE] Simulation complete (exit code: 0)
+2026-05-10 15:00:56,424 [INFO] beacon: [consensus] [FARSITE] Priority zones generated:
+2026-05-10 15:00:56,424 [INFO] beacon: [consensus]   RED: CRITICAL — Direct fire path → Deploy drone
+2026-05-10 15:00:56,424 [INFO] beacon: [consensus]   ORANGE: HIGH — Flanking zones → Deploy rover
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus]   YELLOW: MODERATE — Spotfire risk ahead → Deploy drone
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus] [CONSENSUS] FARSITE: 3 zones generated
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus] [MATTSON] Fetching live conditions for (40.1, -121.4)...
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus] [CONSENSUS] Mattson: zone 1 probability 54%
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus] ============================================================
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus] BEACON CONSENSUS PRIORITY MAP
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus] ============================================================
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus] Scenario:  WILDFIRE
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus] Location:  (40.1, -121.4)
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus] Models:    NOAA, rothermel, farsite, mattson
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus] Time:      2026-05-10 15:00:50
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus] PRIORITY ZONES:
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus]   [RED] Zone 1 — CRITICAL — 3 model(s) agree
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus]   Models:  Rothermel, FARSITE, Mattson
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus]   Radius:  5.0km
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus]   Threat:  CRITICAL
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus]   Deploy:  DRONE
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus]   [YELLOW] Zone 3 — MODERATE — monitoring active
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus]   Models:  Mattson, FARSITE, Rothermel
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus]   Radius:  40.0km
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus]   Threat:  MEDIUM
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus]   Deploy:  DRONE
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus] 🔺 BEACON MULTI-MODEL CONSENSUS SYSTEM
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus] All models unified into one priority map
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus] [BEACON] Running consensus for scenario: WILDFIRE
+2026-05-10 15:00:56,425 [INFO] beacon: [consensus] [NOAA] Fetching conditions for (40.1, -121.4)...
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus] [NOAA] Nearest station: CDEC1 — CARPENTER RIDGE
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus] [CONSENSUS] Weather: 3.6mph, 50% humidity
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus] [CONSENSUS] Rothermel: 2.04mph, threat=critical
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus] [FARSITE] Starting fire spread prediction...
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus]   Ignition: (40.1, -121.4)
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus]   Wind: 3.6239400000000006mph @ 261°
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus]   Fuel moisture: 15.2%
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus]   Duration: 6h
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus] [FARSITE] Simulation complete (exit code: 0)
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus] [FARSITE] Priority zones generated:
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus]   RED: CRITICAL — Direct fire path → Deploy drone
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus]   ORANGE: HIGH — Flanking zones → Deploy rover
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus]   YELLOW: MODERATE — Spotfire risk ahead → Deploy drone
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus] [CONSENSUS] FARSITE: 3 zones generated
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus] [MATTSON] Fetching live conditions for (40.1, -121.4)...
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus] [CONSENSUS] Mattson: zone 1 probability 54%
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus] ============================================================
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus] BEACON CONSENSUS PRIORITY MAP
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus] ============================================================
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus] Scenario:  WILDFIRE
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus] Location:  (40.1, -121.4)
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus] Models:    NOAA, rothermel, farsite, mattson
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus] Time:      2026-05-10 15:00:53
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus] PRIORITY ZONES:
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus]   [RED] Zone 1 — CRITICAL — 3 model(s) agree
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus]   Models:  Rothermel, FARSITE, Mattson
+2026-05-10 15:00:56,426 [INFO] beacon: [consensus]   Radius:  5.0km
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus]   Threat:  CRITICAL
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus]   Deploy:  DRONE
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus]   [YELLOW] Zone 3 — MODERATE — monitoring active
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus]   Models:  Mattson, FARSITE, Rothermel
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus]   Radius:  40.0km
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus]   Threat:  MEDIUM
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus]   Deploy:  DRONE
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus] ============================================================
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus] [BEACON] Running consensus for scenario: EARTHQUAKE
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus] [CONSENSUS] ShakeMap: PGA=0.0607g, MMI=7.4
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus] [CONSENSUS] HAZUS: threat=low, casualties=0
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus] ============================================================
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus] BEACON CONSENSUS PRIORITY MAP
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus] ============================================================
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus] Scenario:  EARTHQUAKE
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus] Location:  (31.2, -8.3)
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus] Models:    shakemap, hazus
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus] Time:      2026-05-10 15:00:53
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus] PRIORITY ZONES:
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus]   [ORANGE] Zone 2 — HIGH — 1 model(s) flagged
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus]   Models:  ShakeMap
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus]   Radius:  15.0km
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus]   Threat:  HIGH
+2026-05-10 15:00:56,427 [INFO] beacon: [consensus]   Deploy:  ROVER
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus]   [YELLOW] Zone 3 — MODERATE — monitoring active
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus]   Models:  ShakeMap, HAZUS
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus]   Radius:  40.0km
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus]   Threat:  MEDIUM
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus]   Deploy:  DRONE
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus] ============================================================
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus] [BEACON] Running consensus for scenario: CHEMICAL
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus] [NOAA] Fetching conditions for (29.38, -94.9)...
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus] [NOAA] Nearest station: KGLS — Galveston, Scholes Field
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus] [CONSENSUS] Weather: 58.0mph, 79% humidity
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus] [CONSENSUS] ALOHA: max hazard 870m
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus] ============================================================
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus] BEACON CONSENSUS PRIORITY MAP
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus] ============================================================
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus] Scenario:  CHEMICAL
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus] Location:  (29.38, -94.9)
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus] Models:    aloha
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus] Time:      2026-05-10 15:00:53
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus] PRIORITY ZONES:
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus]   [RED] Zone 1 — CRITICAL — 1 model(s) agree
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus]   Models:  ALOHA
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus]   Radius:  5.0km
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus]   Threat:  CRITICAL
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus]   Deploy:  DRONE
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus]   [YELLOW] Zone 3 — MODERATE — monitoring active
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus]   Models:  ALOHA
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus]   Radius:  40.0km
+2026-05-10 15:00:56,428 [INFO] beacon: [consensus]   Threat:  MEDIUM
+2026-05-10 15:00:56,429 [INFO] beacon: [consensus]   Deploy:  DRONE
+2026-05-10 15:01:20,193 [WARNING] beacon: PID 22944 exited (code 0) — removed from watch list
+2026-05-10 15:01:40,563 [INFO] beacon: [mission] [BEACON] 🌐 Downloading demo frame for 'wildfire'...
+2026-05-10 15:01:40,564 [INFO] beacon: [mission] [BEACON] ⚠️  Demo frame download failed: HTTP Error 403: Forbidden — using existing frame
+2026-05-10 15:01:40,565 [INFO] beacon: [mission] ==================================================
+2026-05-10 15:01:40,565 [INFO] beacon: [mission] 🔺 BEACON INTEGRATION
+2026-05-10 15:01:40,565 [INFO] beacon: [mission] ==================================================
+2026-05-10 15:01:40,565 [INFO] beacon: [mission] Scenario  : WILDFIRE
+2026-05-10 15:01:40,565 [INFO] beacon: [mission] Simulate  : True
+2026-05-10 15:01:40,565 [INFO] beacon: [mission] Duration  : 30s
+2026-05-10 15:01:40,565 [INFO] beacon: [mission] Frame     : /Users/tanayshah/drone/snapshot.jpg
+2026-05-10 15:01:40,565 [INFO] beacon: [mission] 🚁 Connecting to drone...
+2026-05-10 15:01:40,565 [INFO] beacon: [mission] ✅ Connected! System 0
+2026-05-10 15:01:40,565 [INFO] beacon: [mission] Setting GUIDED mode...
+2026-05-10 15:01:40,565 [INFO] beacon: [mission] Arming...
+2026-05-10 15:01:40,565 [INFO] beacon: [mission] Taking off to 10m...
+2026-05-10 15:01:40,565 [INFO] beacon: [mission] ✅ Airborne!
+2026-05-10 15:01:40,566 [INFO] beacon: [mission] [BEACON] Waiting for telemetry lock...
+2026-05-10 15:01:40,566 [INFO] beacon: [mission] [BEACON] 👁️  Scan 1 | Scenario: WILDFIRE | Position: (0.0, 0.0) | Alt: 0.0m
+2026-05-10 15:01:40,566 [INFO] beacon: [mission] [BEACON] Mission running for 30 seconds...
+2026-05-10 15:01:40,566 [INFO] beacon: [mission] [BEACON] Press Ctrl+C to stop early
+2026-05-10 15:01:40,566 [INFO] beacon: [mission] 🚨 ANOMALY ALERT [15:01:27]
+2026-05-10 15:01:40,566 [INFO] beacon: [mission]    Type:     NONE
+2026-05-10 15:01:40,566 [INFO] beacon: [mission]    Severity: NONE
+2026-05-10 15:01:40,566 [INFO] beacon: [mission]    Location: No anomalies detected in the image. It shows a normal indoor scene.
+2026-05-10 15:01:40,566 [INFO] beacon: [mission]    Details:  This image appears to be taken from an elevated perspective, likely that of a drone or another flying device. There is a small object on the floor which might require attention if it's something that shouldn't be there (like an item that needs repair or cleaning). The rest of the scene looks typical with no obvious hazards or unusual conditions.
+2026-05-10 15:01:40,566 [INFO] beacon: [mission]    Action:   CONTINUE TO MONITOR THE AREA FOR ANY CHANGES OR POTENTIAL ISSUES. SINCE THE IMAGE DOES NOT SHOW ANYTHING IMMEDIATELY CONCERNING, THERE IS NO URGENT ACTION REQUIRED AT THIS MOMENT.
+2026-05-10 15:01:40,566 [INFO] beacon: [mission] [BEACON] 👁️  Scan 2 | Scenario: WILDFIRE | Position: (0.0, 0.0) | Alt: 0.0m
+2026-05-10 15:01:40,566 [INFO] beacon: [mission] [BEACON] ✓ No unusual or dangerous items are present in the image. It seems to show a simple indoor setting with a table and some unrelated items on it.
+2026-05-10 15:01:40,566 [INFO] beacon: [mission] [BEACON] 👁️  Scan 3 | Scenario: WILDFIRE | Position: (0.0, 0.0) | Alt: 0.0m
+2026-05-10 15:01:40,566 [INFO] beacon: [mission] ==================================================
+2026-05-10 15:01:40,566 [INFO] beacon: [mission] 📊 MISSION SUMMARY
+2026-05-10 15:01:40,566 [INFO] beacon: [mission] ==================================================
+2026-05-10 15:01:40,566 [INFO] beacon: [mission]   Scenario:     WILDFIRE
+2026-05-10 15:01:40,566 [INFO] beacon: [mission]   Duration:     30s
+2026-05-10 15:01:40,566 [INFO] beacon: [mission]   Total alerts: 1
+2026-05-10 15:01:40,567 [INFO] beacon: [mission]   Alerts:
+2026-05-10 15:01:40,567 [INFO] beacon: [mission]   [15:01:27] NONE — NONE — This image appears to be taken from an elevated pe
+2026-05-10 15:01:40,567 [INFO] beacon: [mission] 🛬 Landing...
+2026-05-10 15:01:40,567 [INFO] beacon: [mission] ✅ BEACON integration complete
+2026-05-10 15:01:50,200 [INFO] beacon: All subprocesses have completed — Beacon idle. Press Ctrl+C to exit.
+2026-05-10 15:05:24,553 [INFO] beacon: Signal 2 received — initiating shutdown
+2026-05-10 15:05:24,555 [INFO] beacon: Shutting down Beacon...
+2026-05-10 15:05:24,555 [INFO] beacon: Shutting down all Beacon processes...
+2026-05-10 15:05:26,557 [INFO] beacon: All processes stopped.
+2026-05-10 15:05:26,561 [INFO] beacon: Mission report saved: reports/mission_wildfire_20260510_150048.json
+2026-05-10 15:05:26,561 [INFO] beacon: Beacon stopped cleanly.
