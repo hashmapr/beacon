@@ -1,0 +1,250 @@
+{
+  "generated_at": "2026-05-18T19:36:00.743148",
+  "total_candidates": 9,
+  "ranked_survivors": [
+    {
+      "mac_address": "26:51:E6:10:2E:F8",
+      "estimated_lat": 33.103644,
+      "estimated_lon": -96.670756,
+      "triangulation_confidence": 0.95,
+      "likely_mobile_device": true,
+      "detection_count": 7,
+      "avg_signal_dbm": -55.5,
+      "avg_distance_m": 1.9,
+      "frequencies_seen": [
+        "2.4 GHz (WiFi)"
+      ],
+      "first_seen": "2026-05-18T19:19:02.543953",
+      "last_seen": "2026-05-18T19:19:46.623904",
+      "temperature_c": 36.9,
+      "signal_history": [
+        -51.5,
+        -55.5,
+        -58.5
+      ],
+      "triage_score": 75,
+      "triage_reasons": [
+        "Inside RED hazard zone",
+        "Signal weakening (-7.0 dBm)",
+        "High position confidence (95%)"
+      ],
+      "priority_rank": 1
+    },
+    {
+      "mac_address": "22:DA:69:9A:BC:09",
+      "estimated_lat": 33.103805,
+      "estimated_lon": -96.67097,
+      "triangulation_confidence": 0.94,
+      "likely_mobile_device": true,
+      "detection_count": 10,
+      "avg_signal_dbm": -60.4,
+      "avg_distance_m": 3.4,
+      "frequencies_seen": [
+        "2.4 GHz (WiFi)"
+      ],
+      "first_seen": "2026-05-18T19:19:04.549195",
+      "last_seen": "2026-05-18T19:19:52.638364",
+      "temperature_c": 40.3,
+      "signal_history": [
+        -56.4,
+        -60.4,
+        -63.4
+      ],
+      "triage_score": 55,
+      "triage_reasons": [
+        "Critical temperature: 40.3\u00b0C",
+        "Signal weakening (-7.0 dBm)",
+        "High position confidence (94%)"
+      ],
+      "priority_rank": 2
+    },
+    {
+      "mac_address": "26:0D:B7:E7:44:0D",
+      "estimated_lat": 33.103822,
+      "estimated_lon": -96.670939,
+      "triangulation_confidence": 0.87,
+      "likely_mobile_device": true,
+      "detection_count": 10,
+      "avg_signal_dbm": -63.1,
+      "avg_distance_m": 4.6,
+      "frequencies_seen": [
+        "2.4 GHz (Bluetooth)"
+      ],
+      "first_seen": "2026-05-18T19:19:02.543894",
+      "last_seen": "2026-05-18T19:19:58.653374",
+      "temperature_c": 39.5,
+      "signal_history": [
+        -59.1,
+        -63.1,
+        -66.1
+      ],
+      "triage_score": 40,
+      "triage_reasons": [
+        "Abnormal temperature: 39.5\u00b0C",
+        "Signal weakening (-7.0 dBm)",
+        "High position confidence (87%)"
+      ],
+      "priority_rank": 3
+    },
+    {
+      "mac_address": "2C:71:AB:82:86:87",
+      "estimated_lat": 33.103199,
+      "estimated_lon": -96.670589,
+      "triangulation_confidence": 0.495,
+      "likely_mobile_device": true,
+      "detection_count": 1,
+      "avg_signal_dbm": -50.3,
+      "avg_distance_m": 1.0,
+      "frequencies_seen": [
+        "2.4 GHz (Bluetooth)"
+      ],
+      "first_seen": "2026-05-18T19:19:12.564070",
+      "last_seen": "2026-05-18T19:19:12.564070",
+      "temperature_c": 40.1,
+      "signal_history": [
+        -46.3,
+        -50.3,
+        -53.3
+      ],
+      "triage_score": 40,
+      "triage_reasons": [
+        "Critical temperature: 40.1\u00b0C",
+        "Signal weakening (-7.0 dBm)"
+      ],
+      "priority_rank": 4
+    },
+    {
+      "mac_address": "48:97:3C:65:02:11",
+      "estimated_lat": 33.10292,
+      "estimated_lon": -96.670353,
+      "triangulation_confidence": 0.82,
+      "likely_mobile_device": true,
+      "detection_count": 11,
+      "avg_signal_dbm": -65.2,
+      "avg_distance_m": 5.9,
+      "frequencies_seen": [
+        "2.4 GHz (WiFi)"
+      ],
+      "first_seen": "2026-05-18T19:19:00.538597",
+      "last_seen": "2026-05-18T19:19:56.648144",
+      "temperature_c": 36.2,
+      "signal_history": [
+        -61.2,
+        -65.2,
+        -68.2
+      ],
+      "triage_score": 25,
+      "triage_reasons": [
+        "Signal weakening (-7.0 dBm)",
+        "High position confidence (82%)"
+      ],
+      "priority_rank": 5
+    },
+    {
+      "mac_address": "6C:BA:C8:45:72:FE",
+      "estimated_lat": 33.103025,
+      "estimated_lon": -96.670741,
+      "triangulation_confidence": 0.155,
+      "likely_mobile_device": true,
+      "detection_count": 1,
+      "avg_signal_dbm": -77.4,
+      "avg_distance_m": 23.5,
+      "frequencies_seen": [
+        "2.4 GHz (WiFi)"
+      ],
+      "first_seen": "2026-05-18T19:19:00.538604",
+      "last_seen": "2026-05-18T19:19:00.538604",
+      "temperature_c": 38.6,
+      "signal_history": [
+        -73.4,
+        -77.4,
+        -80.4
+      ],
+      "triage_score": 25,
+      "triage_reasons": [
+        "Abnormal temperature: 38.6\u00b0C",
+        "Signal weakening (-7.0 dBm)"
+      ],
+      "priority_rank": 6
+    },
+    {
+      "mac_address": "14:FD:52:BE:C0:43",
+      "estimated_lat": 33.103411,
+      "estimated_lon": -96.670249,
+      "triangulation_confidence": 0.95,
+      "likely_mobile_device": true,
+      "detection_count": 9,
+      "avg_signal_dbm": -57.8,
+      "avg_distance_m": 2.5,
+      "frequencies_seen": [
+        "2.4 GHz (Bluetooth)"
+      ],
+      "first_seen": "2026-05-18T19:19:06.551981",
+      "last_seen": "2026-05-18T19:19:40.614302",
+      "temperature_c": 37.2,
+      "signal_history": [
+        -53.8,
+        -57.8,
+        -60.8
+      ],
+      "triage_score": 25,
+      "triage_reasons": [
+        "Signal weakening (-7.0 dBm)",
+        "High position confidence (95%)"
+      ],
+      "priority_rank": 7
+    },
+    {
+      "mac_address": "56:51:A8:49:25:83",
+      "estimated_lat": 33.103161,
+      "estimated_lon": -96.670979,
+      "triangulation_confidence": 0.74,
+      "likely_mobile_device": true,
+      "detection_count": 6,
+      "avg_signal_dbm": -68.3,
+      "avg_distance_m": 8.4,
+      "frequencies_seen": [
+        "2.4 GHz (Bluetooth)"
+      ],
+      "first_seen": "2026-05-18T19:19:16.571104",
+      "last_seen": "2026-05-18T19:19:56.648180",
+      "temperature_c": 37.6,
+      "signal_history": [
+        -64.3,
+        -68.3,
+        -71.3
+      ],
+      "triage_score": 17,
+      "triage_reasons": [
+        "Signal weakening (-7.0 dBm)"
+      ],
+      "priority_rank": 8
+    },
+    {
+      "mac_address": "28:8F:CF:1F:78:BD",
+      "estimated_lat": 33.102695,
+      "estimated_lon": -96.670381,
+      "triangulation_confidence": 0.36,
+      "likely_mobile_device": true,
+      "detection_count": 12,
+      "avg_signal_dbm": -83.4,
+      "avg_distance_m": 48.0,
+      "frequencies_seen": [
+        "2.4 GHz (Bluetooth)"
+      ],
+      "first_seen": "2026-05-18T19:19:08.557311",
+      "last_seen": "2026-05-18T19:19:48.627528",
+      "temperature_c": 37.7,
+      "signal_history": [
+        -79.4,
+        -83.4,
+        -86.4
+      ],
+      "triage_score": 10,
+      "triage_reasons": [
+        "Signal weakening (-7.0 dBm)"
+      ],
+      "priority_rank": 9
+    }
+  ]
+}
