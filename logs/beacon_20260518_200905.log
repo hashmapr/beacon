@@ -1,0 +1,98 @@
+2026-05-18 20:09:09,594 [INFO] beacon: ============================================================
+2026-05-18 20:09:09,594 [INFO] beacon: 🔺 BEACON AUTONOMOUS DISASTER RESPONSE SYSTEM
+2026-05-18 20:09:09,594 [INFO] beacon: ============================================================
+2026-05-18 20:09:09,594 [INFO] beacon: Scenario      : Wildfire Perimeter Mapping
+2026-05-18 20:09:09,594 [INFO] beacon: Simulate mode : False
+2026-05-18 20:09:09,594 [INFO] beacon: Connection    : udp:127.0.0.1:14550
+2026-05-18 20:09:09,594 [INFO] beacon: Log file      : logs/beacon_20260518_200905.log
+2026-05-18 20:09:09,594 [INFO] beacon: ============================================================
+2026-05-18 20:09:09,605 [INFO] beacon: [dashboard] started (PID 92115)
+2026-05-18 20:09:09,605 [INFO] beacon: Dashboard → http://0.0.0.0:8080
+2026-05-18 20:09:09,762 [INFO] beacon: [dashboard] 🚁 ARIA Server running on http://localhost:3002
+2026-05-18 20:09:09,763 [INFO] beacon: [dashboard] 📡 WebSocket ready for dashboard connection
+2026-05-18 20:09:11,110 [INFO] beacon: [mission] started (PID 92132)
+2026-05-18 20:09:11,120 [INFO] beacon: [consensus] started (PID 92133)
+2026-05-18 20:09:11,121 [INFO] beacon: Beacon is running. Press Ctrl+C to stop.
+2026-05-18 20:09:11,311 [INFO] beacon: [mission] ==================================================
+2026-05-18 20:09:11,311 [INFO] beacon: [mission] 🔺 BEACON INTEGRATION
+2026-05-18 20:09:11,311 [INFO] beacon: [mission] ==================================================
+2026-05-18 20:09:11,311 [INFO] beacon: [mission] Scenario  : WILDFIRE
+2026-05-18 20:09:11,311 [INFO] beacon: [mission] Simulate  : False
+2026-05-18 20:09:11,311 [INFO] beacon: [mission] Duration  : 30s
+2026-05-18 20:09:11,311 [INFO] beacon: [mission] Frame     : /Users/tanayshah/drone/snapshot.jpg
+2026-05-18 20:09:11,311 [INFO] beacon: [mission] 🚁 Connecting to drone...
+2026-05-18 20:09:11,765 [INFO] beacon: [mission] ✅ Connected! System 1
+2026-05-18 20:09:11,765 [INFO] beacon: [mission] Setting GUIDED mode...
+2026-05-18 20:09:13,049 [INFO] beacon: [consensus] 🔺 BEACON MULTI-MODEL CONSENSUS SYSTEM
+2026-05-18 20:09:13,049 [INFO] beacon: [consensus] Scenario: WILDFIRE | Location: (40.1, -121.4)
+2026-05-18 20:09:13,049 [INFO] beacon: [consensus] [BEACON] Running consensus for scenario: WILDFIRE
+2026-05-18 20:09:13,049 [INFO] beacon: [consensus] [NOAA] Fetching conditions for (40.1, -121.4)...
+2026-05-18 20:09:13,049 [INFO] beacon: [consensus] [NOAA] Nearest station: CDEC1 — CARPENTER RIDGE
+2026-05-18 20:09:13,050 [INFO] beacon: [consensus] [CONSENSUS] Weather: 32.4mph, 19% humidity
+2026-05-18 20:09:13,050 [INFO] beacon: [consensus] [CONSENSUS] Rothermel: 12.14mph, threat=critical
+2026-05-18 20:09:13,050 [INFO] beacon: [consensus] [FARSITE] Starting fire spread prediction...
+2026-05-18 20:09:13,050 [INFO] beacon: [consensus]   Ignition: (40.1, -121.4)
+2026-05-18 20:09:13,050 [INFO] beacon: [consensus]   Wind: 32.373864mph @ 356°
+2026-05-18 20:09:13,050 [INFO] beacon: [consensus]   Fuel moisture: 6.1070434570622005%
+2026-05-18 20:09:13,050 [INFO] beacon: [consensus]   Duration: 6h
+2026-05-18 20:09:13,050 [INFO] beacon: [consensus] [FARSITE] Simulation complete (exit code: 0)
+2026-05-18 20:09:13,050 [INFO] beacon: [consensus] [FARSITE] Priority zones generated:
+2026-05-18 20:09:13,050 [INFO] beacon: [consensus]   RED: CRITICAL — Direct fire path → Deploy drone
+2026-05-18 20:09:13,050 [INFO] beacon: [consensus]   ORANGE: HIGH — Flanking zones → Deploy rover
+2026-05-18 20:09:13,050 [INFO] beacon: [consensus]   YELLOW: MODERATE — Spotfire risk ahead → Deploy drone
+2026-05-18 20:09:13,050 [INFO] beacon: [consensus] [CONSENSUS] FARSITE: 3 zones generated
+2026-05-18 20:09:13,050 [INFO] beacon: [consensus] [MATTSON] Fetching live conditions for (40.1, -121.4)...
+2026-05-18 20:09:13,050 [INFO] beacon: [consensus] [MATTSON] Survival modifier: 0.80 (adverse conditions)
+2026-05-18 20:09:13,050 [INFO] beacon: [consensus] [CONSENSUS] Mattson: zone 1 probability 54%
+2026-05-18 20:09:13,051 [INFO] beacon: [consensus] ============================================================
+2026-05-18 20:09:13,051 [INFO] beacon: [consensus] BEACON CONSENSUS PRIORITY MAP
+2026-05-18 20:09:13,051 [INFO] beacon: [consensus] ============================================================
+2026-05-18 20:09:13,051 [INFO] beacon: [consensus] Scenario:  WILDFIRE
+2026-05-18 20:09:13,051 [INFO] beacon: [consensus] Location:  (40.1, -121.4)
+2026-05-18 20:09:13,051 [INFO] beacon: [consensus] Models:    NOAA, rothermel, farsite, mattson
+2026-05-18 20:09:13,051 [INFO] beacon: [consensus] Time:      2026-05-18 20:09:11
+2026-05-18 20:09:13,051 [INFO] beacon: [consensus] PRIORITY ZONES:
+2026-05-18 20:09:13,051 [INFO] beacon: [consensus]   [RED] Zone 1 — CRITICAL — 3 model(s) agree
+2026-05-18 20:09:13,051 [INFO] beacon: [consensus]   Models:  Rothermel, FARSITE, Mattson
+2026-05-18 20:09:13,051 [INFO] beacon: [consensus]   Radius:  5.0km
+2026-05-18 20:09:13,051 [INFO] beacon: [consensus]   Threat:  CRITICAL
+2026-05-18 20:09:13,051 [INFO] beacon: [consensus]   Deploy:  DRONE
+2026-05-18 20:09:13,051 [INFO] beacon: [consensus]   [YELLOW] Zone 3 — MODERATE — monitoring active
+2026-05-18 20:09:13,051 [INFO] beacon: [consensus]   Models:  Mattson, FARSITE, Rothermel
+2026-05-18 20:09:13,051 [INFO] beacon: [consensus]   Radius:  40.0km
+2026-05-18 20:09:13,051 [INFO] beacon: [consensus]   Threat:  MEDIUM
+2026-05-18 20:09:13,051 [INFO] beacon: [consensus]   Deploy:  DRONE
+2026-05-18 20:09:13,760 [INFO] beacon: [mission] Arming...
+2026-05-18 20:09:16,761 [INFO] beacon: [mission] Taking off to 10m...
+2026-05-18 20:09:24,768 [INFO] beacon: [mission] ✅ Airborne!
+2026-05-18 20:09:24,769 [INFO] beacon: [mission] [BEACON] Waiting for telemetry lock...
+2026-05-18 20:09:25,774 [INFO] beacon: [mission] [BEACON] 👁️  Scan 1 | Scenario: WILDFIRE | Position: (149.2, -35.4) | Alt: -0.0m
+2026-05-18 20:09:25,774 [INFO] beacon: [mission] [BEACON] Mission running for 30 seconds...
+2026-05-18 20:09:25,774 [INFO] beacon: [mission] [BEACON] Press Ctrl+C to stop early
+2026-05-18 20:09:40,417 [INFO] beacon: [mission] 🚨 ANOMALY ALERT [20:09:40]
+2026-05-18 20:09:40,421 [INFO] beacon: [mission]    Type:     NONE
+2026-05-18 20:09:40,421 [INFO] beacon: [mission]    Severity: LOW
+2026-05-18 20:09:40,421 [INFO] beacon: [mission]    Location: center of the image
+2026-05-18 20:09:40,436 [INFO] beacon: [mission]    Details:  A small object that appears to be floating in the air without explanation
+2026-05-18 20:09:40,437 [INFO] beacon: [mission]    Action:   HOVER/INVESTIGATE
+2026-05-18 20:09:41,126 [WARNING] beacon: PID 92133 exited (code 0) — removed from watch list
+2026-05-18 20:09:43,367 [INFO] beacon: [mission] [BEACON] 👁️  Scan 2 | Scenario: WILDFIRE | Position: (149.2, -35.4) | Alt: 4.1m
+2026-05-18 20:09:52,384 [INFO] beacon: [mission] [BEACON] ✓ The image shows a dark room with a small object on the right side that resembles an alien character from a movie or cartoon. The image appears to be of low resolution and quality, which makes it difficult to discern any specific details or potential anomalies. Since the image is unclear, no anomaly can be confidently detected or described.
+2026-05-18 20:09:55,389 [INFO] beacon: [mission] [BEACON] 👁️  Scan 3 | Scenario: WILDFIRE | Position: (149.2, -35.4) | Alt: 10.0m
+2026-05-18 20:09:56,779 [INFO] beacon: [mission] ==================================================
+2026-05-18 20:09:56,779 [INFO] beacon: [mission] 📊 MISSION SUMMARY
+2026-05-18 20:09:56,780 [INFO] beacon: [mission] ==================================================
+2026-05-18 20:09:56,780 [INFO] beacon: [mission]   Scenario:     WILDFIRE
+2026-05-18 20:09:56,780 [INFO] beacon: [mission]   Duration:     30s
+2026-05-18 20:09:56,780 [INFO] beacon: [mission]   Total alerts: 1
+2026-05-18 20:09:56,780 [INFO] beacon: [mission]   Alerts:
+2026-05-18 20:09:56,780 [INFO] beacon: [mission]   [20:09:40] NONE — LOW — A small object that appears to be floating in the
+2026-05-18 20:09:56,780 [INFO] beacon: [mission] 🛬 Landing...
+2026-05-18 20:09:56,780 [INFO] beacon: [mission] ✅ BEACON integration complete
+2026-05-18 20:10:11,131 [WARNING] beacon: PID 92132 exited (code 0) — removed from watch list
+2026-05-18 20:10:25,420 [INFO] beacon: Signal 2 received — initiating shutdown
+2026-05-18 20:10:25,422 [INFO] beacon: Shutting down Beacon...
+2026-05-18 20:10:25,422 [INFO] beacon: Shutting down all Beacon processes...
+2026-05-18 20:10:27,427 [INFO] beacon: All processes stopped.
+2026-05-18 20:10:27,429 [INFO] beacon: Mission report saved: reports/mission_wildfire_20260518_200909.json
+2026-05-18 20:10:27,429 [INFO] beacon: Beacon stopped cleanly.
